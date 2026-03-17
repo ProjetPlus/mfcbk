@@ -38,7 +38,7 @@ function SidebarSection({ label, items }: { label: string; items: typeof mainIte
   const location = useLocation();
 
   return (
-    <SidebarGroup defaultOpen>
+    <SidebarGroup>
       <SidebarGroupLabel className="text-sidebar-primary/70 uppercase text-[10px] tracking-widest font-semibold">
         {label}
       </SidebarGroupLabel>
