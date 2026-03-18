@@ -1,36 +1,206 @@
-import { CreditCard } from "lucide-react";
+import { useState } from "react";
+import { CreditCard, Download, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { mockMembers } from "@/data/mockData";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useMembers } from "@/db/useDb";
+import { toast } from "sonner";
+import type { DbMember } from "@/db/database";
+import QRCode from "qrcode";
+import jsPDF from "jspdf";
 
-const Cards = () => (
-  <div className="space-y-6">
-    <div>
-      <h1 className="text-2xl md:text-3xl font-display font-bold text-bordeaux-dark">Cartes à imprimer</h1>
-      <p className="text-sm text-muted-foreground mt-1">Membres autorisés à l'impression</p>
-    </div>
-    <div className="space-y-2">
-      {mockMembers.filter(m => m.status === "actif").map((m) => (
-        <div key={m.id} className="flex items-center justify-between p-4 rounded-lg border border-border/50 bg-card">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
-              {m.firstName[0]}{m.lastName[0]}
+// CR80 card: 85.6mm × 54mm
+const CARD_W = 85.6;
+const CARD_H = 54;
+
+async function generateCardPDF(member: DbMember) {
+  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: [CARD_W, CARD_H] });
+
+  // === RECTO ===
+  // Background
+  doc.setFillColor(107, 26, 46); // bordeaux
+  doc.rect(0, 0, CARD_W, CARD_H, "F");
+
+  // Gold accent bar
+  doc.setFillColor(201, 168, 76); // or
+  doc.rect(0, 0, CARD_W, 14, "F");
+
+  // Title
+  doc.setTextColor(107, 26, 46);
+  doc.setFontSize(7);
+  doc.setFont("helvetica", "bold");
+  doc.text("MUTUELLE FUNÉRAIRE", CARD_W / 2, 5, { align: "center" });
+  doc.setFontSize(5.5);
+  doc.text("CAMP BÉTHEL DE KOUASSIKANDRO", CARD_W / 2, 9, { align: "center" });
+  doc.setFontSize(3.5);
+  doc.setFont("helvetica", "normal");
+  doc.text("Région du Haut-Sassandra — Côte d'Ivoire", CARD_W / 2, 12.5, { align: "center" });
+
+  // Photo placeholder
+  doc.setFillColor(250, 247, 244); // crème
+  doc.roundedRect(5, 18, 18, 22, 2, 2, "F");
+  doc.setTextColor(150, 150, 150);
+  doc.setFontSize(5);
+  doc.text("PHOTO", 14, 30, { align: "center" });
+
+  // Member info
+  doc.setTextColor(250, 247, 244);
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "bold");
+  doc.text(`${member.lastName} ${member.firstName}`, 28, 24);
+
+  doc.setFontSize(6);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(201, 168, 76);
+  doc.text(member.memberId, 28, 29);
+
+  doc.setTextColor(220, 220, 220);
+  doc.setFontSize(5);
+  doc.text(`Campement : ${member.campement}`, 28, 34);
+  doc.text(`S/P : ${member.sousPrefecture}`, 28, 38);
+  doc.text(`Tél : ${member.phone}`, 28, 42);
+  doc.text(`Inscrit le : ${new Date(member.registrationDate).toLocaleDateString("fr-FR")}`, 28, 46);
+
+  // Covered persons badge
+  doc.setFillColor(201, 168, 76);
+  doc.roundedRect(60, 42, 22, 8, 1, 1, "F");
+  doc.setTextColor(107, 26, 46);
+  doc.setFontSize(4.5);
+  doc.setFont("helvetica", "bold");
+  doc.text(`${member.totalCoveredPersons} couvert(s)`, 71, 47, { align: "center" });
+
+  // === VERSO ===
+  doc.addPage([CARD_W, CARD_H], "landscape");
+
+  // Background
+  doc.setFillColor(250, 247, 244); // crème
+  doc.rect(0, 0, CARD_W, CARD_H, "F");
+
+  // QR Code
+  const qrDataUrl = await QRCode.toDataURL(member.memberId, { width: 200, margin: 1, color: { dark: "#6B1A2E", light: "#FAF7F4" } });
+  doc.addImage(qrDataUrl, "PNG", (CARD_W - 24) / 2, 4, 24, 24);
+
+  // Member ID under QR
+  doc.setTextColor(107, 26, 46);
+  doc.setFontSize(7);
+  doc.setFont("helvetica", "bold");
+  doc.text(member.memberId, CARD_W / 2, 33, { align: "center" });
+
+  // Info
+  doc.setTextColor(100, 100, 100);
+  doc.setFontSize(4);
+  doc.setFont("helvetica", "normal");
+  doc.text("Cette carte est la propriété de la Mutuelle Funéraire", CARD_W / 2, 38, { align: "center" });
+  doc.text("du Camp Béthel de Kouassikandro.", CARD_W / 2, 41, { align: "center" });
+  doc.text("En cas de perte, veuillez la retourner à l'association.", CARD_W / 2, 44, { align: "center" });
+
+  // Gold bottom bar
+  doc.setFillColor(201, 168, 76);
+  doc.rect(0, CARD_H - 4, CARD_W, 4, "F");
+  doc.setTextColor(107, 26, 46);
+  doc.setFontSize(3.5);
+  doc.setFont("helvetica", "bold");
+  doc.text("www.campbethel.ci", CARD_W / 2, CARD_H - 1.5, { align: "center" });
+
+  return doc;
+}
+
+const Cards = () => {
+  const { members } = useMembers();
+  const [previewMember, setPreviewMember] = useState<DbMember | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>("");
+  const [generating, setGenerating] = useState<number | null>(null);
+
+  const activeMembers = members.filter(m => m.status === "actif" && m.adhesionPaid);
+
+  const handlePreview = async (member: DbMember) => {
+    setPreviewMember(member);
+    const doc = await generateCardPDF(member);
+    const blob = doc.output("blob");
+    setPreviewUrl(URL.createObjectURL(blob));
+  };
+
+  const handleDownload = async (member: DbMember) => {
+    setGenerating(member.id!);
+    try {
+      const doc = await generateCardPDF(member);
+      doc.save(`Carte_${member.memberId}.pdf`);
+      toast.success("Carte générée", { description: `${member.lastName} ${member.firstName}` });
+    } catch {
+      toast.error("Erreur lors de la génération");
+    }
+    setGenerating(null);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl md:text-3xl font-display font-bold text-bordeaux-dark">Cartes de membre</h1>
+        <p className="text-sm text-muted-foreground mt-1">Génération de cartes CR80 recto/verso avec QR code</p>
+      </div>
+
+      <div className="space-y-2">
+        {activeMembers.map((m) => (
+          <div key={m.id} className="flex items-center justify-between p-4 rounded-lg border border-border/50 bg-card">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
+                {m.firstName[0]}{m.lastName[0]}
+              </div>
+              <div>
+                <p className="font-semibold text-sm">{m.lastName} {m.firstName}</p>
+                <p className="text-xs text-accent">{m.memberId}</p>
+              </div>
             </div>
-            <div>
-              <p className="font-semibold text-sm">{m.lastName} {m.firstName}</p>
-              <p className="text-xs text-accent">{m.memberId}</p>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="text-[10px] bg-or-light text-accent border-accent/20">
+                {m.totalCoveredPersons} couvert(s)
+              </Badge>
+              <Button size="sm" variant="outline" className="text-xs h-8" onClick={() => handlePreview(m)}>
+                <Eye className="h-3 w-3 mr-1" /> Aperçu
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-xs h-8"
+                onClick={() => handleDownload(m)}
+                disabled={generating === m.id}
+              >
+                <Download className="h-3 w-3 mr-1" /> {generating === m.id ? "..." : "PDF"}
+              </Button>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-[10px] bg-or-light text-accent border-accent/20">Autorisé</Badge>
-            <Button size="sm" variant="outline" className="text-xs h-8">
-              <CreditCard className="h-3 w-3 mr-1" /> Imprimer
-            </Button>
+        ))}
+        {activeMembers.length === 0 && (
+          <div className="text-center py-12 text-muted-foreground">
+            <CreditCard className="h-8 w-8 mx-auto mb-2 opacity-50" />
+            <p className="text-sm">Aucun membre actif éligible</p>
           </div>
-        </div>
-      ))}
+        )}
+      </div>
+
+      {/* Preview Dialog */}
+      <Dialog open={!!previewMember} onOpenChange={() => { setPreviewMember(null); setPreviewUrl(""); }}>
+        <DialogContent className="max-w-2xl max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle className="font-display text-bordeaux-dark">
+              Carte de {previewMember?.lastName} {previewMember?.firstName}
+            </DialogTitle>
+          </DialogHeader>
+          {previewUrl && (
+            <iframe src={previewUrl} className="w-full h-[400px] rounded border border-border" title="Aperçu carte" />
+          )}
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => { setPreviewMember(null); setPreviewUrl(""); }}>Fermer</Button>
+            {previewMember && (
+              <Button className="bg-accent hover:bg-accent/90 text-accent-foreground" onClick={() => handleDownload(previewMember)}>
+                <Download className="h-4 w-4 mr-1" /> Télécharger PDF
+              </Button>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
-  </div>
-);
+  );
+};
 
 export default Cards;

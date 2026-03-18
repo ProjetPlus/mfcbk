@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { mockMembers } from "@/data/mockData";
+import { useMembers } from "@/db/useDb";
 
 const statusColors: Record<string, string> = {
   actif: "bg-success-light text-success border-success/20",
@@ -20,13 +20,13 @@ const contributionColors: Record<string, string> = {
 
 const Members = () => {
   const navigate = useNavigate();
+  const { members } = useMembers();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
 
-  const filtered = mockMembers.filter((m) => {
-    const matchSearch =
-      `${m.firstName} ${m.lastName} ${m.memberId}`.toLowerCase().includes(search.toLowerCase());
+  const filtered = members.filter((m) => {
+    const matchSearch = `${m.firstName} ${m.lastName} ${m.memberId}`.toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === "all" || m.status === statusFilter;
     return matchSearch && matchStatus;
   });
@@ -36,7 +36,7 @@ const Members = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl md:text-3xl font-display font-bold text-bordeaux-dark">Membres</h1>
-          <p className="text-sm text-muted-foreground">{mockMembers.length} membres enregistrés</p>
+          <p className="text-sm text-muted-foreground">{members.length} membres enregistrés</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={() => navigate("/scanner")}>
@@ -48,17 +48,11 @@ const Members = () => {
         </div>
       </div>
 
-      {/* Search & Filters */}
       <div className="flex flex-col gap-2">
         <div className="flex gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Rechercher par nom ou identifiant…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 h-10"
-            />
+            <Input placeholder="Rechercher par nom ou identifiant…" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-10" />
           </div>
           <Button variant="outline" size="icon" onClick={() => setShowFilters(!showFilters)}>
             <Filter className="h-4 w-4" />
@@ -67,9 +61,7 @@ const Members = () => {
         {showFilters && (
           <div className="flex flex-wrap gap-2 p-3 bg-secondary/50 rounded-lg border border-border/30">
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-40 h-9 text-xs">
-                <SelectValue placeholder="Statut" />
-              </SelectTrigger>
+              <SelectTrigger className="w-40 h-9 text-xs"><SelectValue placeholder="Statut" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tous les statuts</SelectItem>
                 <SelectItem value="actif">Actif</SelectItem>
@@ -81,7 +73,6 @@ const Members = () => {
         )}
       </div>
 
-      {/* Members List */}
       <div className="space-y-2">
         {filtered.map((member) => (
           <button
@@ -95,9 +86,7 @@ const Members = () => {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <p className="font-semibold text-sm truncate">{member.lastName} {member.firstName}</p>
-                <Badge variant="outline" className={`text-[10px] shrink-0 ${statusColors[member.status]}`}>
-                  {member.status}
-                </Badge>
+                <Badge variant="outline" className={`text-[10px] shrink-0 ${statusColors[member.status]}`}>{member.status}</Badge>
               </div>
               <div className="flex items-center gap-3 mt-0.5">
                 <span className="text-xs text-accent font-medium">{member.memberId}</span>
@@ -106,19 +95,12 @@ const Members = () => {
                   {member.contributionStatus === "à_jour" ? "À jour" : "En retard"}
                 </Badge>
               </div>
-              {member.secondaryMembers.length > 0 && (
-                <p className="text-[10px] text-muted-foreground mt-1">
-                  {member.secondaryMembers.length} membre(s) secondaire(s) — {member.totalCoveredPersons} personnes couvertes
-                </p>
-              )}
             </div>
             <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
           </button>
         ))}
         {filtered.length === 0 && (
-          <div className="text-center py-12 text-muted-foreground">
-            <p className="text-sm">Aucun membre trouvé</p>
-          </div>
+          <div className="text-center py-12 text-muted-foreground"><p className="text-sm">Aucun membre trouvé</p></div>
         )}
       </div>
     </div>

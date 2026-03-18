@@ -1,14 +1,15 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Phone, MapPin, CreditCard, UserPlus, Users, Coins } from "lucide-react";
+import { ArrowLeft, Phone, CreditCard, UserPlus, Users, Coins } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { mockMembers, mockContributions } from "@/data/mockData";
+import { useMember, useContributionsForMember } from "@/db/useDb";
 
 const MemberProfile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const member = mockMembers.find((m) => m.id === id);
+  const member = useMember(id ? Number(id) : undefined);
+  const contributions = useContributionsForMember(member?.memberId ?? "");
 
   if (!member) {
     return (
@@ -18,8 +19,6 @@ const MemberProfile = () => {
       </div>
     );
   }
-
-  const contributions = mockContributions.filter((c) => c.memberId === member.memberId);
 
   const statusColor: Record<string, string> = {
     actif: "bg-success-light text-success",
@@ -33,15 +32,12 @@ const MemberProfile = () => {
         <ArrowLeft className="h-4 w-4" /> Retour aux membres
       </button>
 
-      {/* Header */}
       <div className="flex items-start gap-4">
         <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xl font-display font-bold shrink-0">
           {member.firstName[0]}{member.lastName[0]}
         </div>
         <div className="flex-1">
-          <h1 className="text-2xl font-display font-bold text-bordeaux-dark">
-            {member.lastName} {member.firstName}
-          </h1>
+          <h1 className="text-2xl font-display font-bold text-bordeaux-dark">{member.lastName} {member.firstName}</h1>
           <div className="flex items-center gap-2 mt-1">
             <span className="text-sm font-medium text-accent">{member.memberId}</span>
             <Badge className={`text-[10px] ${statusColor[member.status]}`}>{member.status}</Badge>
@@ -53,7 +49,6 @@ const MemberProfile = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Personal Info */}
         <Card className="border-border/50">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
@@ -69,7 +64,6 @@ const MemberProfile = () => {
           </CardContent>
         </Card>
 
-        {/* Secondary Members */}
         <Card className="border-border/50">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold flex items-center gap-2 justify-between">
@@ -105,7 +99,6 @@ const MemberProfile = () => {
         </Card>
       </div>
 
-      {/* Contribution History */}
       <Card className="border-border/50">
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
@@ -139,12 +132,11 @@ const MemberProfile = () => {
         </CardContent>
       </Card>
 
-      {/* Actions */}
       <div className="flex flex-wrap gap-2">
-        <Button className="bg-accent hover:bg-accent/90 text-accent-foreground">
-          <CreditCard className="h-4 w-4 mr-1" /> Voir la carte
+        <Button className="bg-accent hover:bg-accent/90 text-accent-foreground" onClick={() => navigate(`/cards?member=${member.id}`)}>
+          <CreditCard className="h-4 w-4 mr-1" /> Générer la carte
         </Button>
-        <Button variant="outline">
+        <Button variant="outline" onClick={() => navigate(`/contributions?member=${member.memberId}`)}>
           <Coins className="h-4 w-4 mr-1" /> Enregistrer cotisation
         </Button>
       </div>
