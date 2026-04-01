@@ -1,10 +1,11 @@
 import { useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppLayout } from "@/components/AppLayout";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { seedDatabase } from "@/db/database";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
@@ -25,39 +26,53 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const App = () => {
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated } = useAuth();
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+}
+
+const AppRoutes = () => {
   useEffect(() => {
     seedDatabase();
   }, []);
 
   return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Login />} />
+        <Route path="/login" element={<Login />} />
+        <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/members" element={<Members />} />
+          <Route path="/members/:id" element={<MemberProfile />} />
+          <Route path="/register" element={<RegisterStep1 />} />
+          <Route path="/register/step2" element={<RegisterStep2 />} />
+          <Route path="/deaths" element={<Deaths />} />
+          <Route path="/contributions" element={<Contributions />} />
+          <Route path="/treasury" element={<Treasury />} />
+          <Route path="/scanner" element={<Scanner />} />
+          <Route path="/reports" element={<Reports />} />
+          <Route path="/cards" element={<Cards />} />
+          <Route path="/access" element={<AccessManagement />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/sync" element={<Sync />} />
+        </Route>
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </BrowserRouter>
+  );
+};
+
+const App = () => {
+  return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Login />} />
-            <Route path="/login" element={<Login />} />
-            <Route element={<AppLayout />}>
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/members" element={<Members />} />
-              <Route path="/members/:id" element={<MemberProfile />} />
-              <Route path="/register" element={<RegisterStep1 />} />
-              <Route path="/register/step2" element={<RegisterStep2 />} />
-              <Route path="/deaths" element={<Deaths />} />
-              <Route path="/contributions" element={<Contributions />} />
-              <Route path="/treasury" element={<Treasury />} />
-              <Route path="/scanner" element={<Scanner />} />
-              <Route path="/reports" element={<Reports />} />
-              <Route path="/cards" element={<Cards />} />
-              <Route path="/access" element={<AccessManagement />} />
-              <Route path="/settings" element={<SettingsPage />} />
-              <Route path="/sync" element={<Sync />} />
-            </Route>
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
+        <AuthProvider>
+          <Toaster />
+          <Sonner />
+          <AppRoutes />
+        </AuthProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

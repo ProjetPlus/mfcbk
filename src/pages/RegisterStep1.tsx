@@ -13,6 +13,8 @@ const idTypes = ["CNI", "Permis", "Passeport", "Carte du producteur", "Autre"];
 const RegisterStep1 = () => {
   const navigate = useNavigate();
   const [department, setDepartment] = useState<string>("");
+  const [photo, setPhoto] = useState<string>("");
+  const [idPhoto, setIdPhoto] = useState<string>("");
   const [formData, setFormData] = useState({
     lastName: "", firstName: "", phone: "", phoneSecondary: "", whatsapp: "",
     campement: "", sousPrefecture: "", idType: "", idNumber: "",
@@ -24,6 +26,25 @@ const RegisterStep1 = () => {
 
   const isValid = formData.lastName && formData.firstName && formData.phone && formData.sousPrefecture && formData.idType;
 
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>, setter: (v: string) => void) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) return;
+    const reader = new FileReader();
+    reader.onload = () => setter(reader.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const handleNext = () => {
+    // Store step1 data in sessionStorage for step2
+    sessionStorage.setItem("register_step1", JSON.stringify({
+      ...formData,
+      photo,
+      idPhoto,
+    }));
+    navigate("/register/step2");
+  };
+
   return (
     <div className="space-y-6 max-w-2xl">
       <div>
@@ -31,7 +52,6 @@ const RegisterStep1 = () => {
         <p className="text-sm text-muted-foreground mt-1">Informations personnelles du nouveau membre</p>
       </div>
 
-      {/* Step indicator */}
       <div className="flex items-center gap-2">
         <div className="flex items-center justify-center w-8 h-8 rounded-full bg-accent text-accent-foreground text-sm font-bold">1</div>
         <div className="h-0.5 flex-1 bg-border" />
@@ -96,26 +116,45 @@ const RegisterStep1 = () => {
             </Select>
           </div>
 
-          <div className="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-accent/50 transition-colors">
-            <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-            <p className="text-sm font-medium">Photo de la pièce d'identité</p>
-            <p className="text-xs text-muted-foreground mt-1">JPG, PNG — max 5 Mo — OCR automatique</p>
-          </div>
+          <label className="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-accent/50 transition-colors block">
+            {idPhoto ? (
+              <div className="flex flex-col items-center gap-2">
+                <img src={idPhoto} alt="Pièce d'identité" className="max-h-32 rounded" />
+                <p className="text-xs text-success font-medium">✓ Photo de pièce d'identité chargée</p>
+              </div>
+            ) : (
+              <>
+                <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                <p className="text-sm font-medium">Photo de la pièce d'identité</p>
+                <p className="text-xs text-muted-foreground mt-1">JPG, PNG — max 5 Mo</p>
+              </>
+            )}
+            <input type="file" accept="image/*" className="hidden" onChange={(e) => handlePhotoUpload(e, setIdPhoto)} />
+          </label>
 
-          <Field label="Numéro de pièce" value={formData.idNumber} onChange={(v) => setFormData({ ...formData, idNumber: v })} placeholder="Auto-détecté par OCR ou saisie manuelle" />
+          <Field label="Numéro de pièce" value={formData.idNumber} onChange={(v) => setFormData({ ...formData, idNumber: v })} placeholder="Saisie manuelle du numéro" />
 
-          <div className="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-accent/50 transition-colors">
-            <Camera className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-            <p className="text-sm font-medium">Photo du membre</p>
-            <p className="text-xs text-muted-foreground mt-1">Optionnel — utilisée pour la carte de membre</p>
-          </div>
+          <label className="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-accent/50 transition-colors block">
+            {photo ? (
+              <div className="flex flex-col items-center gap-2">
+                <img src={photo} alt="Photo membre" className="w-24 h-24 rounded-full object-cover" />
+                <p className="text-xs text-success font-medium">✓ Photo du membre chargée</p>
+              </div>
+            ) : (
+              <>
+                <Camera className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                <p className="text-sm font-medium">Photo du membre</p>
+                <p className="text-xs text-muted-foreground mt-1">Optionnel — utilisée pour la carte de membre</p>
+              </>
+            )}
+            <input type="file" accept="image/*" capture="user" className="hidden" onChange={(e) => handlePhotoUpload(e, setPhoto)} />
+          </label>
         </CardContent>
       </Card>
 
-      {/* Info box */}
       <div className="p-3 bg-info-bg rounded-lg border border-accent/20">
         <p className="text-xs text-muted-foreground">
-          <strong className="text-foreground">Important :</strong> Aucune donnée n'est enregistrée à cette étape. Les données seront sauvegardées uniquement après le paiement du droit d'adhésion à l'étape 2.
+          <strong className="text-foreground">Important :</strong> Les données seront sauvegardées après le paiement du droit d'adhésion à l'étape 2.
         </p>
       </div>
 
@@ -123,7 +162,7 @@ const RegisterStep1 = () => {
         <Button
           disabled={!isValid}
           className="bg-accent hover:bg-accent/90 text-accent-foreground"
-          onClick={() => navigate("/register/step2")}
+          onClick={handleNext}
         >
           Suivant <ArrowRight className="ml-1 h-4 w-4" />
         </Button>

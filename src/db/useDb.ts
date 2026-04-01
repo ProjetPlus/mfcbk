@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db, type DbMember, type DbDeath, type DbContribution } from './database';
+import { db, type DbMember, type DbDeath, type DbContribution, type DbUser } from './database';
 
 export function useMembers() {
   const members = useLiveQuery(() => db.members.toArray()) ?? [];
@@ -96,4 +96,22 @@ async function recalcTreasury() {
 
 export function useContributionsForMember(memberId: string) {
   return useLiveQuery(() => db.contributions.where('memberId').equals(memberId).toArray(), [memberId]) ?? [];
+}
+
+export function useUsers() {
+  const users = useLiveQuery(() => db.users.toArray()) ?? [];
+  return {
+    users,
+    addUser: (user: Omit<DbUser, 'id'>) => db.users.add(user),
+    updateUser: (id: number, changes: Partial<DbUser>) => db.users.update(id, changes),
+    deleteUser: (id: number) => db.users.delete(id),
+  };
+}
+
+export async function authenticateUser(username: string, password: string): Promise<DbUser | null> {
+  const user = await db.users.where('username').equals(username).first();
+  if (user && user.password === password && user.isActive) {
+    return user;
+  }
+  return null;
 }

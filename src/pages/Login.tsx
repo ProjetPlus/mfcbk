@@ -1,28 +1,41 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ScanLine, LogIn, Eye, EyeOff } from "lucide-react";
+import { ScanLine, LogIn, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import { useAuth } from "@/contexts/AuthContext";
+import { authenticateUser } from "@/db/useDb";
 import logo from "@/assets/logo-camp-bethel.png";
 
 const Login = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Mock login — navigate to dashboard
-    navigate("/dashboard");
+    setError("");
+    setLoading(true);
+    
+    const user = await authenticateUser(username, password);
+    if (user) {
+      login(user);
+      navigate("/dashboard");
+    } else {
+      setError("Identifiant ou mot de passe incorrect");
+    }
+    setLoading(false);
   };
 
   return (
     <div className="min-h-screen bg-creme flex items-center justify-center p-4">
       <div className="w-full max-w-sm flex flex-col items-center gap-6">
-        {/* Logo */}
         <div className="flex flex-col items-center gap-3">
           <img src={logo} alt="Camp Béthel" className="w-24 h-24 rounded-full shadow-lg border-4 border-or/30" />
           <h1 className="text-xl font-display font-bold text-bordeaux-dark text-center leading-tight">
@@ -33,7 +46,6 @@ const Login = () => {
           </p>
         </div>
 
-        {/* Scanner Button */}
         <Button
           className="w-full h-14 text-base font-semibold bg-accent hover:bg-accent/90 text-accent-foreground shadow-md"
           onClick={() => navigate("/scanner")}
@@ -42,17 +54,21 @@ const Login = () => {
           Scanner une carte
         </Button>
 
-        {/* Separator */}
         <div className="flex items-center gap-3 w-full">
           <div className="flex-1 h-px bg-border" />
           <span className="text-xs text-muted-foreground uppercase tracking-wider">Administration</span>
           <div className="flex-1 h-px bg-border" />
         </div>
 
-        {/* Login Form */}
         <Card className="w-full border-border/50 shadow-sm">
           <CardContent className="pt-6">
             <form onSubmit={handleLogin} className="flex flex-col gap-4">
+              {error && (
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive-light border border-destructive/20">
+                  <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
+                  <p className="text-xs text-destructive">{error}</p>
+                </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="username" className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
                   Identifiant
@@ -63,6 +79,7 @@ const Login = () => {
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="Votre identifiant"
                   className="h-11"
+                  required
                 />
               </div>
               <div className="space-y-2">
@@ -77,6 +94,7 @@ const Login = () => {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Votre mot de passe"
                     className="h-11 pr-10"
+                    required
                   />
                   <button
                     type="button"
@@ -87,9 +105,9 @@ const Login = () => {
                   </button>
                 </div>
               </div>
-              <Button type="submit" className="w-full h-11 bg-primary hover:bg-primary/90 font-semibold">
+              <Button type="submit" className="w-full h-11 bg-primary hover:bg-primary/90 font-semibold" disabled={loading}>
                 <LogIn className="mr-2 h-4 w-4" />
-                Connexion
+                {loading ? "Connexion..." : "Connexion"}
               </Button>
             </form>
           </CardContent>

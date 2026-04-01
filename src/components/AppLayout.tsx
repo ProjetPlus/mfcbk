@@ -1,10 +1,19 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
-import { Outlet } from "react-router-dom";
-import { Bell } from "lucide-react";
+import { Outlet, useNavigate } from "react-router-dom";
+import { Bell, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function AppLayout() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
@@ -17,8 +26,13 @@ export function AppLayout() {
                 <Bell className="h-5 w-5 text-muted-foreground" />
                 <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full" />
               </Button>
-              <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-bold">
-                SA
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-bold">
+                  {user?.displayName?.slice(0, 2).toUpperCase() || "SA"}
+                </div>
+                <Button variant="ghost" size="icon" onClick={handleLogout} title="Déconnexion">
+                  <LogOut className="h-4 w-4 text-muted-foreground" />
+                </Button>
               </div>
             </div>
           </header>

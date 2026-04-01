@@ -9,12 +9,13 @@ Camp Béthel Mutuelle Funéraire — design system, architecture decisions, and 
 - Frontend-first with local IndexedDB database (Dexie.js)
 - NO Supabase, NO Lovable Cloud — everything runs locally
 - Data persisted in browser IndexedDB (campbethel database)
-- Mock data seeded on first run via seedDatabase()
+- Admin account: admin / 12345678 (seeded on first run)
+- Export/import JSON for data backup between devices
+- PWA manifest for installability (no service worker in dev)
 - 16 screens total per cahier des charges
-- PWA planned (Service Workers, IndexedDB)
 
 ## Key Business Rules
-- Member ID format: MSCB-YY-NNN (resets each year)
+- Member ID format: MSCB-YY-NNN (auto-generated, resets each year)
 - Adhesion fee: 10,000 FCFA (one-time, required to finalize registration)
 - Contribution per death: 1,000 FCFA × covered persons
 - Max 2 secondary members per principal
@@ -27,3 +28,8 @@ Camp Béthel Mutuelle Funéraire — design system, architecture decisions, and 
 - jsPDF: PDF generation (cards, reports)
 - qrcode: QR code generation for member cards
 - CR80 card format: 85.6mm × 54mm
+
+## Auth
+- Local auth via IndexedDB users table
+- Session stored in sessionStorage
+- Protected routes via AuthProvider/ProtectedRoute
