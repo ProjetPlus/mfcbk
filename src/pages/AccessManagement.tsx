@@ -22,20 +22,23 @@ const roleLabels: Record<string, string> = {
 const AccessManagement = () => {
   const { users, addUser, deleteUser } = useUsers();
   const [showForm, setShowForm] = useState(false);
-  const [newUser, setNewUser] = useState({ username: "", password: "", displayName: "", role: "" });
+  const [newUser, setNewUser] = useState({ username: "", password: "", display_name: "", role: "" });
 
   const handleCreate = async () => {
-    if (!newUser.username || !newUser.password || !newUser.role || !newUser.displayName) return;
-    await addUser({
-      username: newUser.username,
-      password: newUser.password,
-      displayName: newUser.displayName,
-      role: newUser.role as any,
-      isActive: true,
-    });
-    toast.success("Compte créé", { description: newUser.displayName });
-    setNewUser({ username: "", password: "", displayName: "", role: "" });
-    setShowForm(false);
+    if (!newUser.username || !newUser.password || !newUser.role || !newUser.display_name) return;
+    try {
+      await addUser({
+        username: newUser.username,
+        password: newUser.password,
+        display_name: newUser.display_name,
+        role: newUser.role,
+      });
+      toast.success("Compte créé", { description: newUser.display_name });
+      setNewUser({ username: "", password: "", display_name: "", role: "" });
+      setShowForm(false);
+    } catch (err: any) {
+      toast.error("Erreur", { description: err.message });
+    }
   };
 
   return (
@@ -58,16 +61,16 @@ const AccessManagement = () => {
           {users.map((r) => (
             <div key={r.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 border border-border/30">
               <div>
-                <p className="text-sm font-medium">{r.displayName}</p>
+                <p className="text-sm font-medium">{r.display_name}</p>
                 <p className="text-xs text-muted-foreground">@{r.username} — {roleLabels[r.role] || r.role}</p>
               </div>
               <div className="flex items-center gap-2">
                 <Badge variant="outline" className="text-[10px] bg-success-light text-success border-success/20">
-                  {r.isActive ? "actif" : "inactif"}
+                  {r.is_active ? "actif" : "inactif"}
                 </Badge>
                 {r.role !== "super_admin" && (
                   <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => {
-                    deleteUser(r.id!);
+                    deleteUser(r.id);
                     toast.success("Compte supprimé");
                   }}>
                     <Trash2 className="h-3 w-3" />
@@ -88,7 +91,7 @@ const AccessManagement = () => {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Nom complet *</Label>
-              <Input value={newUser.displayName} onChange={(e) => setNewUser({ ...newUser, displayName: e.target.value })} placeholder="Nom affiché" className="h-10" />
+              <Input value={newUser.display_name} onChange={(e) => setNewUser({ ...newUser, display_name: e.target.value })} placeholder="Nom affiché" className="h-10" />
             </div>
             <div className="space-y-2">
               <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Identifiant *</Label>
@@ -111,7 +114,7 @@ const AccessManagement = () => {
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setShowForm(false)}><X className="h-4 w-4 mr-1" /> Annuler</Button>
-              <Button className="bg-primary hover:bg-primary/90" onClick={handleCreate} disabled={!newUser.username || !newUser.password || !newUser.role || !newUser.displayName}>
+              <Button className="bg-primary hover:bg-primary/90" onClick={handleCreate} disabled={!newUser.username || !newUser.password || !newUser.role || !newUser.display_name}>
                 <Check className="h-4 w-4 mr-1" /> Créer
               </Button>
             </div>

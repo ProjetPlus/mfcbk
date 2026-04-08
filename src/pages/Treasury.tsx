@@ -18,7 +18,7 @@ const Treasury = () => {
         <CardContent className="pt-6 pb-5 text-center">
           <Landmark className="h-8 w-8 text-accent mx-auto mb-2" />
           <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Solde total de la caisse</p>
-          <p className="text-4xl font-display font-bold text-accent mt-2">{formatCFA(treasury?.totalBalance ?? 0)}</p>
+          <p className="text-4xl font-display font-bold text-accent mt-2">{formatCFA(treasury?.total_balance ?? 0)}</p>
         </CardContent>
       </Card>
 
@@ -30,7 +30,7 @@ const Treasury = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-display font-bold text-success">{formatCFA(treasury?.totalContributionsCollected ?? 0)}</p>
+            <p className="text-2xl font-display font-bold text-success">{formatCFA(treasury?.total_contributions_collected ?? 0)}</p>
             <p className="text-xs text-muted-foreground mt-1">Total des cotisations collectées</p>
           </CardContent>
         </Card>
@@ -41,7 +41,7 @@ const Treasury = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-display font-bold text-destructive">{formatCFA(treasury?.totalPayouts ?? 0)}</p>
+            <p className="text-2xl font-display font-bold text-destructive">{formatCFA(treasury?.total_payouts ?? 0)}</p>
             <p className="text-xs text-muted-foreground mt-1">Total des versements aux familles</p>
           </CardContent>
         </Card>
@@ -52,7 +52,7 @@ const Treasury = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-display font-bold text-accent">{formatCFA(treasury?.retainedReserves ?? 0)}</p>
+            <p className="text-2xl font-display font-bold text-accent">{formatCFA(treasury?.retained_reserves ?? 0)}</p>
             <p className="text-xs text-muted-foreground mt-1">Retenues sur décès de secondaires</p>
           </CardContent>
         </Card>

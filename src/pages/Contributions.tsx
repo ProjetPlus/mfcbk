@@ -11,10 +11,10 @@ import { useDeaths, useContributions } from "@/db/useDb";
 import { toast } from "sonner";
 
 const statusConfig: Record<string, { label: string; className: string }> = {
-  payé: { label: "Payé", className: "bg-success-light text-success" },
-  non_payé: { label: "Non payé", className: "bg-destructive-light text-destructive" },
+  "payé": { label: "Payé", className: "bg-success-light text-success" },
+  "non_payé": { label: "Non payé", className: "bg-destructive-light text-destructive" },
   partiel: { label: "Partiel", className: "bg-warning/10 text-warning" },
-  exonéré: { label: "Exonéré", className: "bg-primary/10 text-primary" },
+  "exonéré": { label: "Exonéré", className: "bg-primary/10 text-primary" },
 };
 
 const paymentMethods = [
@@ -27,8 +27,8 @@ const paymentMethods = [
 
 const Contributions = () => {
   const { deaths } = useDeaths();
-  const [selectedDeathId, setSelectedDeathId] = useState<number | null>(null);
-  const [editContribution, setEditContribution] = useState<number | null>(null);
+  const [selectedDeathId, setSelectedDeathId] = useState<string | null>(null);
+  const [editContribution, setEditContribution] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] = useState("");
   const [amount, setAmount] = useState("");
   const [proofType, setProofType] = useState("");
@@ -42,32 +42,32 @@ const Contributions = () => {
 
   const editingContrib = contributions.find(c => c.id === editContribution);
 
-  const openEdit = (contribId: number) => {
+  const openEdit = (contribId: string) => {
     const c = contributions.find(x => x.id === contribId);
     if (!c) return;
     setEditContribution(contribId);
-    setPaymentMethod(c.paymentMethod);
+    setPaymentMethod(c.payment_method);
     setAmount(String(c.amount || ""));
-    setProofType(c.proofType || "");
-    setProofData(c.proofData || "");
+    setProofType(c.proof_type || "");
+    setProofData(c.proof_data || "");
     setProofFile("");
   };
 
   const handleSave = async () => {
     if (!editContribution || !paymentMethod) return;
     const numAmount = Number(amount) || 0;
-    const expected = editingContrib?.expectedAmount ?? 0;
+    const expected = editingContrib?.expected_amount ?? 0;
     let status: "payé" | "non_payé" | "partiel" | "exonéré" = "non_payé";
     if (numAmount >= expected) status = "payé";
     else if (numAmount > 0) status = "partiel";
 
     await updateContribution(editContribution, {
       amount: numAmount,
-      paymentMethod: paymentMethod as any,
+      payment_method: paymentMethod as any,
       status,
       date: new Date().toISOString().split("T")[0],
-      proofType: proofType as any || undefined,
-      proofData: proofFile || proofData || undefined,
+      proof_type: proofType || undefined,
+      proof_data: proofFile || proofData || undefined,
     });
 
     toast.success("Cotisation enregistrée", { description: `${numAmount.toLocaleString("fr-FR")} FCFA — ${status}` });
@@ -89,15 +89,14 @@ const Contributions = () => {
         <p className="text-sm text-muted-foreground mt-1">Suivi et enregistrement des cotisations par décès</p>
       </div>
 
-      {/* Death selector */}
       {ongoingDeaths.length > 1 && (
-        <Select value={String(activeDeathId ?? "")} onValueChange={(v) => setSelectedDeathId(Number(v))}>
+        <Select value={String(activeDeathId ?? "")} onValueChange={(v) => setSelectedDeathId(v)}>
           <SelectTrigger className="w-full h-10">
             <SelectValue placeholder="Sélectionner un décès" />
           </SelectTrigger>
           <SelectContent>
             {ongoingDeaths.map(d => (
-              <SelectItem key={d.id} value={String(d.id)}>{d.deceasedName} — {new Date(d.dateOfDeath).toLocaleDateString("fr-FR")}</SelectItem>
+              <SelectItem key={d.id} value={d.id}>{d.deceased_name} — {new Date(d.date_of_death).toLocaleDateString("fr-FR")}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -114,7 +113,7 @@ const Contributions = () => {
             <CardHeader className="pb-3">
               <CardTitle className="text-base font-semibold flex items-center gap-2">
                 <Coins className="h-4 w-4 text-accent" />
-                Cotisations pour {death.deceasedName}
+                Cotisations pour {death.deceased_name}
                 <Badge variant="outline" className="text-[10px] bg-destructive-light text-destructive ml-auto">
                   {paid}/{total} payé
                 </Badge>
@@ -128,17 +127,17 @@ const Contributions = () => {
                     <div
                       key={c.id}
                       className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 border border-border/30 cursor-pointer hover:border-accent/30 transition-colors"
-                      onClick={() => openEdit(c.id!)}
+                      onClick={() => openEdit(c.id)}
                     >
                       <div>
-                        <p className="text-sm font-medium">{c.memberName}</p>
-                        <p className="text-xs text-muted-foreground">{c.memberId} — {paymentMethods.find(p => p.value === c.paymentMethod)?.label || c.paymentMethod}</p>
+                        <p className="text-sm font-medium">{c.member_name}</p>
+                        <p className="text-xs text-muted-foreground">{c.member_id} — {paymentMethods.find(p => p.value === c.payment_method)?.label || c.payment_method}</p>
                       </div>
                       <div className="flex items-center gap-3">
                         <span className="text-sm font-display font-bold text-accent">
-                          {c.amount.toLocaleString("fr-FR")} / {c.expectedAmount.toLocaleString("fr-FR")} FCFA
+                          {c.amount.toLocaleString("fr-FR")} / {c.expected_amount.toLocaleString("fr-FR")} FCFA
                         </span>
-                        <Badge className={`text-[10px] ${config.className}`}>{config.label}</Badge>
+                        <Badge className={`text-[10px] ${config?.className}`}>{config?.label}</Badge>
                       </div>
                     </div>
                   );
@@ -156,7 +155,6 @@ const Contributions = () => {
         </div>
       )}
 
-      {/* Edit Contribution Dialog */}
       <Dialog open={!!editContribution} onOpenChange={() => setEditContribution(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -165,25 +163,17 @@ const Contributions = () => {
           {editingContrib && (
             <div className="space-y-4">
               <div className="p-3 bg-secondary/50 rounded-lg">
-                <p className="font-semibold text-sm">{editingContrib.memberName}</p>
-                <p className="text-xs text-muted-foreground">{editingContrib.memberId}</p>
+                <p className="font-semibold text-sm">{editingContrib.member_name}</p>
+                <p className="text-xs text-muted-foreground">{editingContrib.member_id}</p>
                 <p className="text-sm font-display font-bold text-accent mt-1">
-                  Montant attendu : {editingContrib.expectedAmount.toLocaleString("fr-FR")} FCFA
+                  Montant attendu : {editingContrib.expected_amount.toLocaleString("fr-FR")} FCFA
                 </p>
               </div>
 
               <div className="space-y-2">
                 <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Montant payé (FCFA) *</Label>
-                <Input
-                  type="number"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="Montant partiel ou total"
-                  className="h-10"
-                  min={0}
-                  max={editingContrib.expectedAmount}
-                />
-                <p className="text-[10px] text-muted-foreground">Paiement partiel autorisé. Saisissez le montant effectivement reçu.</p>
+                <Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Montant partiel ou total" className="h-10" min={0} max={editingContrib.expected_amount} />
+                <p className="text-[10px] text-muted-foreground">Paiement partiel autorisé.</p>
               </div>
 
               <div className="space-y-2">

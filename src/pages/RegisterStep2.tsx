@@ -53,23 +53,23 @@ const RegisterStep2 = () => {
       const memberId = await generateMemberId();
 
       await addMember({
-        memberId,
-        firstName: data.firstName,
-        lastName: data.lastName,
+        member_id: memberId,
+        first_name: data.firstName,
+        last_name: data.lastName,
         phone: data.phone,
-        phoneSecondary: data.phoneSecondary || undefined,
+        phone_secondary: data.phoneSecondary || undefined,
         whatsapp: data.whatsapp || undefined,
         campement: data.campement,
-        sousPrefecture: data.sousPrefecture,
-        idType: data.idType,
-        idNumber: data.idNumber || "",
+        sous_prefecture: data.sousPrefecture,
+        id_type: data.idType,
+        id_number: data.idNumber || "",
         photo: data.photo || undefined,
-        registrationDate: paymentDate,
+        registration_date: paymentDate,
         status: "actif",
-        adhesionPaid: true,
-        secondaryMembers: [],
-        totalCoveredPersons: 1,
-        contributionStatus: "à_jour",
+        adhesion_paid: true,
+        secondary_members: [],
+        total_covered_persons: 1,
+        contribution_status: "à_jour",
       });
 
       sessionStorage.removeItem("register_step1");
@@ -102,7 +102,6 @@ const RegisterStep2 = () => {
           <div className="p-4 bg-or-light rounded-lg text-center">
             <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Montant à payer</p>
             <p className="text-3xl font-display font-bold text-accent mt-1">10 000 FCFA</p>
-            <p className="text-xs text-muted-foreground mt-1">Montant fixe — non modifiable</p>
           </div>
 
           <div className="space-y-2">
@@ -145,7 +144,6 @@ const RegisterStep2 = () => {
                     <>
                       <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
                       <p className="text-sm font-medium">Photo ou PDF du reçu</p>
-                      <p className="text-xs text-muted-foreground mt-1">JPG, PNG, PDF — max 5 Mo</p>
                     </>
                   )}
                   <input type="file" accept="image/*,.pdf" className="hidden" onChange={handleFileUpload} />
@@ -158,18 +156,8 @@ const RegisterStep2 = () => {
             <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Date de paiement</Label>
             <Input type="date" value={paymentDate} onChange={(e) => setPaymentDate(e.target.value)} className="h-10" />
           </div>
-
-          <div className="p-2 bg-secondary/50 rounded text-xs text-muted-foreground">
-            <strong>Admin enregistrant :</strong> Super Admin (automatique)
-          </div>
         </CardContent>
       </Card>
-
-      <div className="p-3 bg-info-bg rounded-lg border border-accent/20">
-        <p className="text-xs text-muted-foreground">
-          <strong className="text-foreground">Important :</strong> Sans le paiement du droit d'adhésion, l'inscription ne peut pas être finalisée.
-        </p>
-      </div>
 
       <div className="flex justify-between">
         <Button variant="outline" onClick={() => navigate("/register")}>

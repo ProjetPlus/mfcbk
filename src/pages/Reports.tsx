@@ -21,7 +21,7 @@ const Reports = () => {
     let y = 30;
     members.forEach((m, i) => {
       if (y > 270) { doc.addPage(); y = 20; }
-      doc.text(`${i + 1}. ${m.memberId} — ${m.lastName} ${m.firstName} — ${m.status} — ${m.sousPrefecture}`, 14, y);
+      doc.text(`${i + 1}. ${m.member_id} — ${m.last_name} ${m.first_name} — ${m.status} — ${m.sous_prefecture}`, 14, y);
       y += 6;
     });
     doc.save("membres.pdf");
@@ -37,13 +37,13 @@ const Reports = () => {
     deaths.forEach(d => {
       if (y > 260) { doc.addPage(); y = 20; }
       doc.setFontSize(10);
-      doc.text(`${d.deceasedName} — ${new Date(d.dateOfDeath).toLocaleDateString("fr-FR")}`, 14, y);
+      doc.text(`${d.deceased_name} — ${new Date(d.date_of_death).toLocaleDateString("fr-FR")}`, 14, y);
       y += 6;
       doc.setFontSize(8);
-      const deathContribs = contributions.filter(c => c.deathId === d.id);
+      const deathContribs = contributions.filter(c => c.death_id === d.id);
       deathContribs.forEach(c => {
         if (y > 270) { doc.addPage(); y = 20; }
-        doc.text(`  ${c.memberName}: ${c.amount.toLocaleString("fr-FR")} / ${c.expectedAmount.toLocaleString("fr-FR")} FCFA — ${c.status}`, 14, y);
+        doc.text(`  ${c.member_name}: ${c.amount.toLocaleString("fr-FR")} / ${c.expected_amount.toLocaleString("fr-FR")} FCFA — ${c.status}`, 14, y);
         y += 5;
       });
       y += 4;
@@ -58,11 +58,11 @@ const Reports = () => {
     doc.setFontSize(14);
     doc.text("Rapport financier — Caisse", 14, 20);
     doc.setFontSize(10);
-    doc.text(`Solde total : ${formatCFA(treasury.totalBalance)}`, 14, 35);
-    doc.text(`Total collecté : ${formatCFA(treasury.totalContributionsCollected)}`, 14, 45);
-    doc.text(`Versements effectués : ${formatCFA(treasury.totalPayouts)}`, 14, 55);
-    doc.text(`Réserves retenues : ${formatCFA(treasury.retainedReserves)}`, 14, 65);
-    doc.text(`Cotisations en attente : ${formatCFA(treasury.pendingContributions)}`, 14, 75);
+    doc.text(`Solde total : ${formatCFA(treasury.total_balance)}`, 14, 35);
+    doc.text(`Total collecté : ${formatCFA(treasury.total_contributions_collected)}`, 14, 45);
+    doc.text(`Versements effectués : ${formatCFA(treasury.total_payouts)}`, 14, 55);
+    doc.text(`Réserves retenues : ${formatCFA(treasury.retained_reserves)}`, 14, 65);
+    doc.text(`Cotisations en attente : ${formatCFA(treasury.pending_contributions)}`, 14, 75);
     doc.save("rapport_financier.pdf");
     toast.success("PDF généré");
   };
@@ -76,8 +76,8 @@ const Reports = () => {
     let y = 30;
     late.forEach((c, i) => {
       if (y > 270) { doc.addPage(); y = 20; }
-      const rest = c.expectedAmount - c.amount;
-      doc.text(`${i + 1}. ${c.memberName} (${c.memberId}) — Reste : ${rest.toLocaleString("fr-FR")} FCFA`, 14, y);
+      const rest = c.expected_amount - c.amount;
+      doc.text(`${i + 1}. ${c.member_name} (${c.member_id}) — Reste : ${rest.toLocaleString("fr-FR")} FCFA`, 14, y);
       y += 6;
     });
     doc.save("retards_cotisation.pdf");

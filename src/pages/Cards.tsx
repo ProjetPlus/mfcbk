@@ -9,23 +9,18 @@ import type { DbMember } from "@/db/database";
 import QRCode from "qrcode";
 import jsPDF from "jspdf";
 
-// CR80 card: 85.6mm × 54mm
 const CARD_W = 85.6;
 const CARD_H = 54;
 
 async function generateCardPDF(member: DbMember) {
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: [CARD_W, CARD_H] });
 
-  // === RECTO ===
-  // Background
-  doc.setFillColor(107, 26, 46); // bordeaux
+  doc.setFillColor(107, 26, 46);
   doc.rect(0, 0, CARD_W, CARD_H, "F");
 
-  // Gold accent bar
-  doc.setFillColor(201, 168, 76); // or
+  doc.setFillColor(201, 168, 76);
   doc.rect(0, 0, CARD_W, 14, "F");
 
-  // Title
   doc.setTextColor(107, 26, 46);
   doc.setFontSize(7);
   doc.setFont("helvetica", "bold");
@@ -36,57 +31,49 @@ async function generateCardPDF(member: DbMember) {
   doc.setFont("helvetica", "normal");
   doc.text("Région du Haut-Sassandra — Côte d'Ivoire", CARD_W / 2, 12.5, { align: "center" });
 
-  // Photo placeholder
-  doc.setFillColor(250, 247, 244); // crème
+  doc.setFillColor(250, 247, 244);
   doc.roundedRect(5, 18, 18, 22, 2, 2, "F");
   doc.setTextColor(150, 150, 150);
   doc.setFontSize(5);
   doc.text("PHOTO", 14, 30, { align: "center" });
 
-  // Member info
   doc.setTextColor(250, 247, 244);
   doc.setFontSize(9);
   doc.setFont("helvetica", "bold");
-  doc.text(`${member.lastName} ${member.firstName}`, 28, 24);
+  doc.text(`${member.last_name} ${member.first_name}`, 28, 24);
 
   doc.setFontSize(6);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(201, 168, 76);
-  doc.text(member.memberId, 28, 29);
+  doc.text(member.member_id, 28, 29);
 
   doc.setTextColor(220, 220, 220);
   doc.setFontSize(5);
   doc.text(`Campement : ${member.campement}`, 28, 34);
-  doc.text(`S/P : ${member.sousPrefecture}`, 28, 38);
+  doc.text(`S/P : ${member.sous_prefecture}`, 28, 38);
   doc.text(`Tél : ${member.phone}`, 28, 42);
-  doc.text(`Inscrit le : ${new Date(member.registrationDate).toLocaleDateString("fr-FR")}`, 28, 46);
+  doc.text(`Inscrit le : ${new Date(member.registration_date).toLocaleDateString("fr-FR")}`, 28, 46);
 
-  // Covered persons badge
   doc.setFillColor(201, 168, 76);
   doc.roundedRect(60, 42, 22, 8, 1, 1, "F");
   doc.setTextColor(107, 26, 46);
   doc.setFontSize(4.5);
   doc.setFont("helvetica", "bold");
-  doc.text(`${member.totalCoveredPersons} couvert(s)`, 71, 47, { align: "center" });
+  doc.text(`${member.total_covered_persons} couvert(s)`, 71, 47, { align: "center" });
 
-  // === VERSO ===
   doc.addPage([CARD_W, CARD_H], "landscape");
 
-  // Background
-  doc.setFillColor(250, 247, 244); // crème
+  doc.setFillColor(250, 247, 244);
   doc.rect(0, 0, CARD_W, CARD_H, "F");
 
-  // QR Code
-  const qrDataUrl = await QRCode.toDataURL(member.memberId, { width: 200, margin: 1, color: { dark: "#6B1A2E", light: "#FAF7F4" } });
+  const qrDataUrl = await QRCode.toDataURL(member.member_id, { width: 200, margin: 1, color: { dark: "#6B1A2E", light: "#FAF7F4" } });
   doc.addImage(qrDataUrl, "PNG", (CARD_W - 24) / 2, 4, 24, 24);
 
-  // Member ID under QR
   doc.setTextColor(107, 26, 46);
   doc.setFontSize(7);
   doc.setFont("helvetica", "bold");
-  doc.text(member.memberId, CARD_W / 2, 33, { align: "center" });
+  doc.text(member.member_id, CARD_W / 2, 33, { align: "center" });
 
-  // Info
   doc.setTextColor(100, 100, 100);
   doc.setFontSize(4);
   doc.setFont("helvetica", "normal");
@@ -94,7 +81,6 @@ async function generateCardPDF(member: DbMember) {
   doc.text("du Camp Béthel de Kouassikandro.", CARD_W / 2, 41, { align: "center" });
   doc.text("En cas de perte, veuillez la retourner à l'association.", CARD_W / 2, 44, { align: "center" });
 
-  // Gold bottom bar
   doc.setFillColor(201, 168, 76);
   doc.rect(0, CARD_H - 4, CARD_W, 4, "F");
   doc.setTextColor(107, 26, 46);
@@ -109,9 +95,9 @@ const Cards = () => {
   const { members } = useMembers();
   const [previewMember, setPreviewMember] = useState<DbMember | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>("");
-  const [generating, setGenerating] = useState<number | null>(null);
+  const [generating, setGenerating] = useState<string | null>(null);
 
-  const activeMembers = members.filter(m => m.status === "actif" && m.adhesionPaid);
+  const activeMembers = members.filter(m => m.status === "actif" && m.adhesion_paid);
 
   const handlePreview = async (member: DbMember) => {
     setPreviewMember(member);
@@ -121,11 +107,11 @@ const Cards = () => {
   };
 
   const handleDownload = async (member: DbMember) => {
-    setGenerating(member.id!);
+    setGenerating(member.id);
     try {
       const doc = await generateCardPDF(member);
-      doc.save(`Carte_${member.memberId}.pdf`);
-      toast.success("Carte générée", { description: `${member.lastName} ${member.firstName}` });
+      doc.save(`Carte_${member.member_id}.pdf`);
+      toast.success("Carte générée", { description: `${member.last_name} ${member.first_name}` });
     } catch {
       toast.error("Erreur lors de la génération");
     }
@@ -144,27 +130,21 @@ const Cards = () => {
           <div key={m.id} className="flex items-center justify-between p-4 rounded-lg border border-border/50 bg-card">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
-                {m.firstName[0]}{m.lastName[0]}
+                {m.first_name[0]}{m.last_name[0]}
               </div>
               <div>
-                <p className="font-semibold text-sm">{m.lastName} {m.firstName}</p>
-                <p className="text-xs text-accent">{m.memberId}</p>
+                <p className="font-semibold text-sm">{m.last_name} {m.first_name}</p>
+                <p className="text-xs text-accent">{m.member_id}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <Badge variant="outline" className="text-[10px] bg-or-light text-accent border-accent/20">
-                {m.totalCoveredPersons} couvert(s)
+                {m.total_covered_persons} couvert(s)
               </Badge>
               <Button size="sm" variant="outline" className="text-xs h-8" onClick={() => handlePreview(m)}>
                 <Eye className="h-3 w-3 mr-1" /> Aperçu
               </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="text-xs h-8"
-                onClick={() => handleDownload(m)}
-                disabled={generating === m.id}
-              >
+              <Button size="sm" variant="outline" className="text-xs h-8" onClick={() => handleDownload(m)} disabled={generating === m.id}>
                 <Download className="h-3 w-3 mr-1" /> {generating === m.id ? "..." : "PDF"}
               </Button>
             </div>
@@ -178,12 +158,11 @@ const Cards = () => {
         )}
       </div>
 
-      {/* Preview Dialog */}
       <Dialog open={!!previewMember} onOpenChange={() => { setPreviewMember(null); setPreviewUrl(""); }}>
         <DialogContent className="max-w-2xl max-h-[90vh]">
           <DialogHeader>
             <DialogTitle className="font-display text-bordeaux-dark">
-              Carte de {previewMember?.lastName} {previewMember?.firstName}
+              Carte de {previewMember?.last_name} {previewMember?.first_name}
             </DialogTitle>
           </DialogHeader>
           {previewUrl && (

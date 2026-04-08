@@ -3,12 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { ScanLine, Camera, StopCircle, AlertCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { db } from "@/db/database";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const Scanner = () => {
   const navigate = useNavigate();
-  const scannerRef = useRef<HTMLDivElement>(null);
   const html5QrCodeRef = useRef<any>(null);
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState("");
@@ -26,17 +25,21 @@ const Scanner = () => {
         { fps: 10, qrbox: { width: 250, height: 250 } },
         async (decodedText: string) => {
           setLastResult(decodedText);
-          // Look up member by memberId
-          const member = await db.members.where("memberId").equals(decodedText).first();
+          const { data: member } = await supabase
+            .from("members")
+            .select("*")
+            .eq("member_id", decodedText)
+            .single();
+          
           if (member) {
-            toast.success(`Membre trouvé : ${member.lastName} ${member.firstName}`);
+            toast.success(`Membre trouvé : ${member.last_name} ${member.first_name}`);
             await stopScanner();
             navigate(`/members/${member.id}`);
           } else {
             toast.error("Membre non trouvé", { description: decodedText });
           }
         },
-        () => {} // ignore errors during scanning
+        () => {}
       );
       setScanning(true);
     } catch (err: any) {
@@ -115,13 +118,6 @@ const Scanner = () => {
           <p className="text-sm font-mono font-semibold text-foreground">{lastResult}</p>
         </div>
       )}
-
-      <div className="p-3 bg-info-bg rounded-lg border border-accent/20 text-center">
-        <ScanLine className="h-5 w-5 text-accent mx-auto mb-1" />
-        <p className="text-xs text-muted-foreground">
-          Le scanner fonctionne <strong className="text-foreground">hors ligne</strong>. Les données sont stockées localement dans IndexedDB.
-        </p>
-      </div>
     </div>
   );
 };
