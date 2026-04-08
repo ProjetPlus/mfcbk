@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useDeaths, useMembers } from "@/db/useDb";
 import { toast } from "sonner";
+import type { DbSecondaryMember } from "@/db/database";
 
 const formatCFA = (n: number) => n.toLocaleString("fr-FR") + " FCFA";
 
@@ -20,13 +21,12 @@ const Deaths = () => {
   const [deceasedType, setDeceasedType] = useState<"principal" | "secondaire">("principal");
   const [secondaryName, setSecondaryName] = useState("");
   const [dateOfDeath, setDateOfDeath] = useState(new Date().toISOString().split("T")[0]);
-  const [showDetail, setShowDetail] = useState<number | null>(null);
+  const [showDetail, setShowDetail] = useState<string | null>(null);
 
   const activeMembers = members.filter(m => m.status === "actif");
-  const selectedMember = members.find(m => m.memberId === selectedMemberId);
+  const selectedMember = members.find(m => m.member_id === selectedMemberId);
 
-  // Auto-calc contributions: 1000 FCFA × covered persons for each active member
-  const totalExpected = activeMembers.reduce((s, m) => s + m.totalCoveredPersons * 1000, 0);
+  const totalExpected = activeMembers.reduce((s, m) => s + m.total_covered_persons * 1000, 0);
   const payoutAmount = deceasedType === "principal" ? 300000 : 250000;
   const retainedAmount = deceasedType === "secondaire" ? 50000 : 0;
 
@@ -34,18 +34,18 @@ const Deaths = () => {
     if (!selectedMemberId || !dateOfDeath) return;
 
     const deceasedName = deceasedType === "principal"
-      ? `${selectedMember?.firstName} ${selectedMember?.lastName}`
+      ? `${selectedMember?.first_name} ${selectedMember?.last_name}`
       : secondaryName;
 
     await addDeath({
-      deceasedName,
-      deceasedMemberId: selectedMemberId,
-      dateOfDeath,
+      deceased_name: deceasedName || "",
+      deceased_member_id: selectedMemberId,
+      date_of_death: dateOfDeath,
       type: deceasedType,
       payout: payoutAmount,
       retained: retainedAmount,
-      totalExpectedContributions: totalExpected,
-      totalCollected: 0,
+      total_expected_contributions: totalExpected,
+      total_collected: 0,
       status: "en_cours",
     });
 
@@ -56,6 +56,10 @@ const Deaths = () => {
   };
 
   const detailDeath = deaths.find(d => d.id === showDetail);
+
+  const secondaryMembersOfSelected = selectedMember
+    ? ((selectedMember.secondary_members || []) as DbSecondaryMember[]).filter(s => s.status === "vivant")
+    : [];
 
   return (
     <div className="space-y-6">
@@ -69,31 +73,30 @@ const Deaths = () => {
         </Button>
       </div>
 
-      {/* Death list */}
       <div className="space-y-3">
         {deaths.map((death) => (
-          <Card key={death.id} className="border-border/50 hover:shadow-sm transition-shadow cursor-pointer" onClick={() => setShowDetail(death.id!)}>
+          <Card key={death.id} className="border-border/50 hover:shadow-sm transition-shadow cursor-pointer" onClick={() => setShowDetail(death.id)}>
             <CardContent className="pt-4 pb-4 flex items-center gap-4">
               <div className="p-2 rounded-lg bg-destructive-light shrink-0">
                 <Skull className="h-5 w-5 text-destructive" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <p className="font-semibold">{death.deceasedName}</p>
+                  <p className="font-semibold">{death.deceased_name}</p>
                   <Badge variant="outline" className={death.status === "en_cours" ? "bg-destructive-light text-destructive text-[10px]" : "bg-success-light text-success text-[10px]"}>
                     {death.status === "en_cours" ? "En cours" : "Clôturé"}
                   </Badge>
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {death.deceasedMemberId} — {death.type === "principal" ? "Membre principal" : "Membre secondaire"} — {new Date(death.dateOfDeath).toLocaleDateString("fr-FR")}
+                  {death.deceased_member_id} — {death.type === "principal" ? "Membre principal" : "Membre secondaire"} — {new Date(death.date_of_death).toLocaleDateString("fr-FR")}
                 </p>
                 <div className="flex gap-4 mt-1 text-xs">
                   <span>Versement : <strong className="text-foreground">{formatCFA(death.payout)}</strong></span>
                   {death.retained > 0 && <span>Retenu : <strong className="text-accent">{formatCFA(death.retained)}</strong></span>}
-                  <span>Collecté : <strong className="text-success">{formatCFA(death.totalCollected)}</strong> / {formatCFA(death.totalExpectedContributions)}</span>
+                  <span>Collecté : <strong className="text-success">{formatCFA(death.total_collected)}</strong> / {formatCFA(death.total_expected_contributions)}</span>
                 </div>
                 <div className="mt-2 h-1.5 bg-border rounded-full overflow-hidden">
-                  <div className="h-full bg-accent rounded-full transition-all" style={{ width: `${Math.min(100, death.totalExpectedContributions > 0 ? (death.totalCollected / death.totalExpectedContributions) * 100 : 0)}%` }} />
+                  <div className="h-full bg-accent rounded-full transition-all" style={{ width: `${Math.min(100, death.total_expected_contributions > 0 ? (death.total_collected / death.total_expected_contributions) * 100 : 0)}%` }} />
                 </div>
               </div>
               <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -105,7 +108,6 @@ const Deaths = () => {
         )}
       </div>
 
-      {/* Declaration Form Dialog */}
       <Dialog open={showForm} onOpenChange={setShowForm}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -118,7 +120,7 @@ const Deaths = () => {
                 <SelectTrigger className="h-10"><SelectValue placeholder="Sélectionner le membre" /></SelectTrigger>
                 <SelectContent>
                   {members.filter(m => m.status === "actif").map(m => (
-                    <SelectItem key={m.memberId} value={m.memberId}>{m.lastName} {m.firstName} — {m.memberId}</SelectItem>
+                    <SelectItem key={m.member_id} value={m.member_id}>{m.last_name} {m.first_name} — {m.member_id}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -138,11 +140,11 @@ const Deaths = () => {
             {deceasedType === "secondaire" && selectedMember && (
               <div className="space-y-2">
                 <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Membre secondaire décédé *</Label>
-                {selectedMember.secondaryMembers.length > 0 ? (
+                {secondaryMembersOfSelected.length > 0 ? (
                   <Select value={secondaryName} onValueChange={setSecondaryName}>
                     <SelectTrigger className="h-10"><SelectValue placeholder="Sélectionner" /></SelectTrigger>
                     <SelectContent>
-                      {selectedMember.secondaryMembers.filter(s => s.status === "vivant").map(s => (
+                      {secondaryMembersOfSelected.map(s => (
                         <SelectItem key={s.id} value={s.name}>{s.name} ({s.relationship})</SelectItem>
                       ))}
                     </SelectContent>
@@ -158,7 +160,6 @@ const Deaths = () => {
               <Input type="date" value={dateOfDeath} onChange={(e) => setDateOfDeath(e.target.value)} className="h-10" />
             </div>
 
-            {/* Auto-calculated summary */}
             <Card className="border-accent/30 bg-or-light/50">
               <CardContent className="pt-4 pb-4 space-y-2">
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Calcul automatique</p>
@@ -180,9 +181,6 @@ const Deaths = () => {
                     <p className="font-display font-bold text-foreground">{activeMembers.length}</p>
                   </div>
                 </div>
-                <p className="text-[10px] text-muted-foreground mt-2">
-                  Formule : 1 000 FCFA × nombre de personnes couvertes par membre
-                </p>
               </CardContent>
             </Card>
 
@@ -202,7 +200,6 @@ const Deaths = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Detail Dialog */}
       <Dialog open={!!showDetail} onOpenChange={() => setShowDetail(null)}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
@@ -211,17 +208,17 @@ const Deaths = () => {
           {detailDeath && (
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3 text-sm">
-                <InfoItem label="Défunt" value={detailDeath.deceasedName} />
-                <InfoItem label="ID Membre" value={detailDeath.deceasedMemberId} />
+                <InfoItem label="Défunt" value={detailDeath.deceased_name} />
+                <InfoItem label="ID Membre" value={detailDeath.deceased_member_id} />
                 <InfoItem label="Type" value={detailDeath.type === "principal" ? "Membre principal" : "Membre secondaire"} />
-                <InfoItem label="Date" value={new Date(detailDeath.dateOfDeath).toLocaleDateString("fr-FR")} />
+                <InfoItem label="Date" value={new Date(detailDeath.date_of_death).toLocaleDateString("fr-FR")} />
                 <InfoItem label="Versement" value={formatCFA(detailDeath.payout)} />
                 <InfoItem label="Retenu" value={formatCFA(detailDeath.retained)} />
-                <InfoItem label="Collecté" value={`${formatCFA(detailDeath.totalCollected)} / ${formatCFA(detailDeath.totalExpectedContributions)}`} />
+                <InfoItem label="Collecté" value={`${formatCFA(detailDeath.total_collected)} / ${formatCFA(detailDeath.total_expected_contributions)}`} />
                 <InfoItem label="Statut" value={detailDeath.status === "en_cours" ? "En cours" : "Clôturé"} />
               </div>
               <div className="h-2 bg-border rounded-full overflow-hidden">
-                <div className="h-full bg-accent rounded-full" style={{ width: `${Math.min(100, detailDeath.totalExpectedContributions > 0 ? (detailDeath.totalCollected / detailDeath.totalExpectedContributions) * 100 : 0)}%` }} />
+                <div className="h-full bg-accent rounded-full" style={{ width: `${Math.min(100, detailDeath.total_expected_contributions > 0 ? (detailDeath.total_collected / detailDeath.total_expected_contributions) * 100 : 0)}%` }} />
               </div>
             </div>
           )}

@@ -2,14 +2,13 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { DbMember, DbDeath, DbContribution, DbTreasury, DbUser, DbSettings } from "./database";
 
-// Generic hook for realtime subscribed tables
-function useSupabaseTable<T extends { id: string }>(table: string) {
+function useSupabaseTable<T>(table: string) {
   const [data, setData] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
     const { data: rows } = await supabase.from(table).select("*").order("created_at", { ascending: false });
-    setData((rows || []) as T[]);
+    setData((rows || []) as unknown as T[]);
     setLoading(false);
   }, [table]);
 
@@ -55,7 +54,7 @@ export function useMember(id: string | undefined) {
   useEffect(() => {
     if (!id) return;
     supabase.from("members").select("*").eq("id", id).single().then(({ data }) => {
-      if (data) setMember(data as DbMember);
+      if (data) setMember(data as unknown as DbMember);
     });
   }, [id]);
 
@@ -69,7 +68,6 @@ export function useDeaths() {
     const { data: inserted, error } = await supabase.from("deaths").insert(death as any).select().single();
     if (error) throw error;
     
-    // Auto-generate contribution entries for all active members
     const { data: activeMembers } = await supabase.from("members").select("*").eq("status", "actif");
     if (activeMembers && inserted) {
       const contributions = activeMembers.map((m: any) => ({
@@ -83,7 +81,6 @@ export function useDeaths() {
       }));
       await supabase.from("contributions").insert(contributions);
       
-      // Update death totals
       const totalExpected = contributions.reduce((s: number, c: any) => s + c.expected_amount, 0);
       await supabase.from("deaths").update({ total_expected_contributions: totalExpected }).eq("id", inserted.id);
     }
@@ -107,7 +104,7 @@ export function useContributions(deathId?: string) {
     let query = supabase.from("contributions").select("*");
     if (deathId) query = query.eq("death_id", deathId);
     const { data } = await query.order("member_name");
-    setContributions((data || []) as DbContribution[]);
+    setContributions((data || []) as unknown as DbContribution[]);
   }, [deathId]);
 
   useEffect(() => {
@@ -124,12 +121,11 @@ export function useContributions(deathId?: string) {
   const updateContribution = async (id: string, changes: Partial<DbContribution>) => {
     await supabase.from("contributions").update(changes as any).eq("id", id);
     
-    // Recalculate death totals
     const contrib = contributions.find(c => c.id === id);
     if (contrib) {
       const { data: allForDeath } = await supabase.from("contributions").select("*").eq("death_id", contrib.death_id);
       if (allForDeath) {
-        const totalCollected = allForDeath.reduce((s, c: any) => s + c.amount, 0);
+        const totalCollected = allForDeath.reduce((s: number, c: any) => s + c.amount, 0);
         await supabase.from("deaths").update({ total_collected: totalCollected }).eq("id", contrib.death_id);
       }
       await recalcTreasury();
@@ -152,7 +148,7 @@ export function useTreasury() {
   useEffect(() => {
     const fetch = async () => {
       const { data } = await supabase.from("treasury").select("*").limit(1).single();
-      if (data) setTreasury(data as DbTreasury);
+      if (data) setTreasury(data as unknown as DbTreasury);
     };
     fetch();
     const channel = supabase
@@ -195,7 +191,7 @@ export function useContributionsForMember(memberId: string) {
   useEffect(() => {
     if (!memberId) return;
     supabase.from("contributions").select("*").eq("member_id", memberId).then(({ data }) => {
-      setContributions((data || []) as DbContribution[]);
+      setContributions((data || []) as unknown as DbContribution[]);
     });
   }, [memberId]);
 
@@ -206,8 +202,7 @@ export function useUsers() {
   const { data: users, refetch } = useSupabaseTable<DbUser>("app_users");
 
   const addUser = async (user: { username: string; password: string; role: string; display_name: string }) => {
-    // Use edge function or RPC to hash password
-    const { error } = await supabase.rpc("create_app_user", {
+    const { error } = await supabase.rpc("create_app_user" as any, {
       p_username: user.username,
       p_password: user.password,
       p_role: user.role,
@@ -231,7 +226,7 @@ export function useUsers() {
 }
 
 export async function authenticateUser(username: string, password: string): Promise<DbUser | null> {
-  const { data, error } = await supabase.rpc("authenticate_app_user", {
+  const { data, error } = await supabase.rpc("authenticate_app_user" as any, {
     p_username: username,
     p_password: password,
   });
@@ -248,7 +243,7 @@ export function useSettings() {
   useEffect(() => {
     const fetch = async () => {
       const { data } = await supabase.from("settings").select("*").limit(1).single();
-      if (data) setSettings(data as DbSettings);
+      if (data) setSettings(data as unknown as DbSettings);
     };
     fetch();
   }, []);
@@ -256,7 +251,7 @@ export function useSettings() {
   const updateSettings = async (changes: Partial<DbSettings>) => {
     if (!settings) return;
     const { data } = await supabase.from("settings").update(changes as any).eq("id", settings.id).select().single();
-    if (data) setSettings(data as DbSettings);
+    if (data) setSettings(data as unknown as DbSettings);
   };
 
   return { settings, updateSettings };

@@ -1,13 +1,15 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Outlet, useNavigate } from "react-router-dom";
-import { Bell, LogOut } from "lucide-react";
+import { Bell, LogOut, Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/contexts/ThemeContext";
 
 export function AppLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { theme, toggleTheme } = useTheme();
 
   const handleLogout = () => {
     logout();
@@ -22,13 +24,16 @@ export function AppLayout() {
           <header className="h-14 flex items-center justify-between border-b px-4 bg-card">
             <SidebarTrigger className="text-primary" />
             <div className="flex items-center gap-2">
+              <Button variant="ghost" size="icon" onClick={toggleTheme} title="Mode sombre">
+                {theme === "dark" ? <Sun className="h-5 w-5 text-accent" /> : <Moon className="h-5 w-5 text-muted-foreground" />}
+              </Button>
               <Button variant="ghost" size="icon" className="relative">
                 <Bell className="h-5 w-5 text-muted-foreground" />
                 <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full" />
               </Button>
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-bold">
-                  {user?.displayName?.slice(0, 2).toUpperCase() || "SA"}
+                  {user?.display_name?.slice(0, 2).toUpperCase() || "SA"}
                 </div>
                 <Button variant="ghost" size="icon" onClick={handleLogout} title="Déconnexion">
                   <LogOut className="h-4 w-4 text-muted-foreground" />

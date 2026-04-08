@@ -1,6 +1,6 @@
 import {
-  LayoutDashboard, Users, UserPlus, Skull, Coins, Landmark, BarChart3,
-  CreditCard, Settings, Shield, RefreshCw, ScanLine
+  LayoutDashboard, Users, Skull, Coins, Landmark, BarChart3,
+  CreditCard, Settings, Shield, RefreshCw
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -14,8 +14,6 @@ import {
 const mainItems = [
   { title: "Tableau de bord", url: "/dashboard", icon: LayoutDashboard },
   { title: "Membres", url: "/members", icon: Users },
-  { title: "Inscription", url: "/register", icon: UserPlus },
-  { title: "Scanner QR", url: "/scanner", icon: ScanLine },
 ];
 
 const managementItems = [
@@ -29,7 +27,7 @@ const managementItems = [
 const adminItems = [
   { title: "Gestion des accès", url: "/access", icon: Shield },
   { title: "Paramètres", url: "/settings", icon: Settings },
-  { title: "Synchronisation", url: "/sync", icon: RefreshCw },
+  { title: "Données & Sauvegarde", url: "/sync", icon: RefreshCw },
 ];
 
 function SidebarSection({ label, items }: { label: string; items: typeof mainItems }) {
@@ -90,7 +88,7 @@ export function AppSidebar() {
       <SidebarFooter className="p-4">
         {!collapsed && (
           <p className="text-[10px] text-sidebar-foreground/40 text-center">
-            v1.0 — Kouassikandro
+            v2.0 — Kouassikandro
           </p>
         )}
       </SidebarFooter>

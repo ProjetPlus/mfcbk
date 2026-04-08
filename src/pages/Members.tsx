@@ -10,11 +10,11 @@ import { useMembers } from "@/db/useDb";
 const statusColors: Record<string, string> = {
   actif: "bg-success-light text-success border-success/20",
   suspendu: "bg-warning/10 text-warning border-warning/20",
-  décédé: "bg-destructive-light text-destructive border-destructive/20",
+  "décédé": "bg-destructive-light text-destructive border-destructive/20",
 };
 
 const contributionColors: Record<string, string> = {
-  à_jour: "bg-success-light text-success border-success/20",
+  "à_jour": "bg-success-light text-success border-success/20",
   en_retard: "bg-destructive-light text-destructive border-destructive/20",
 };
 
@@ -26,7 +26,7 @@ const Members = () => {
   const [showFilters, setShowFilters] = useState(false);
 
   const filtered = members.filter((m) => {
-    const matchSearch = `${m.firstName} ${m.lastName} ${m.memberId}`.toLowerCase().includes(search.toLowerCase());
+    const matchSearch = `${m.first_name} ${m.last_name} ${m.member_id}`.toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === "all" || m.status === statusFilter;
     return matchSearch && matchStatus;
   });
@@ -81,18 +81,18 @@ const Members = () => {
             className="w-full text-left p-4 rounded-lg border border-border/50 bg-card hover:border-accent/40 hover:shadow-sm transition-all flex items-center gap-3"
           >
             <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shrink-0">
-              {member.firstName[0]}{member.lastName[0]}
+              {member.first_name[0]}{member.last_name[0]}
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <p className="font-semibold text-sm truncate">{member.lastName} {member.firstName}</p>
+                <p className="font-semibold text-sm truncate">{member.last_name} {member.first_name}</p>
                 <Badge variant="outline" className={`text-[10px] shrink-0 ${statusColors[member.status]}`}>{member.status}</Badge>
               </div>
               <div className="flex items-center gap-3 mt-0.5">
-                <span className="text-xs text-accent font-medium">{member.memberId}</span>
-                <span className="text-xs text-muted-foreground">{member.sousPrefecture}</span>
-                <Badge variant="outline" className={`text-[9px] ${contributionColors[member.contributionStatus]}`}>
-                  {member.contributionStatus === "à_jour" ? "À jour" : "En retard"}
+                <span className="text-xs text-accent font-medium">{member.member_id}</span>
+                <span className="text-xs text-muted-foreground">{member.sous_prefecture}</span>
+                <Badge variant="outline" className={`text-[9px] ${contributionColors[member.contribution_status]}`}>
+                  {member.contribution_status === "à_jour" ? "À jour" : "En retard"}
                 </Badge>
               </div>
             </div>

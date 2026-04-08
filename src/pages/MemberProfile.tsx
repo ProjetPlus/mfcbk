@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Phone, CreditCard, UserPlus, Users, Coins, Trash2, X } from "lucide-react";
+import { ArrowLeft, Phone, CreditCard, UserPlus, Users, Coins, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,8 +15,8 @@ import type { DbSecondaryMember } from "@/db/database";
 const MemberProfile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const member = useMember(id ? Number(id) : undefined);
-  const contributions = useContributionsForMember(member?.memberId ?? "");
+  const member = useMember(id);
+  const contributions = useContributionsForMember(member?.member_id ?? "");
   const { updateMember } = useMembers();
   const [showAddSecondary, setShowAddSecondary] = useState(false);
   const [newSecondary, setNewSecondary] = useState({ name: "", relationship: "", dateOfBirth: "" });
@@ -33,15 +33,17 @@ const MemberProfile = () => {
   const statusColor: Record<string, string> = {
     actif: "bg-success-light text-success",
     suspendu: "bg-warning/10 text-warning",
-    décédé: "bg-destructive-light text-destructive",
+    "décédé": "bg-destructive-light text-destructive",
   };
+
+  const secondaryMembers = (member.secondary_members || []) as DbSecondaryMember[];
 
   const handleAddSecondary = async () => {
     if (!newSecondary.name || !newSecondary.relationship) {
       toast.error("Nom et lien de parenté requis");
       return;
     }
-    if (member.secondaryMembers.length >= 2) {
+    if (secondaryMembers.length >= 2) {
       toast.error("Maximum 2 membres secondaires");
       return;
     }
@@ -54,10 +56,10 @@ const MemberProfile = () => {
       status: "vivant",
     };
 
-    const updatedSecondary = [...member.secondaryMembers, sm];
-    await updateMember(member.id!, {
-      secondaryMembers: updatedSecondary,
-      totalCoveredPersons: 1 + updatedSecondary.length,
+    const updatedSecondary = [...secondaryMembers, sm];
+    await updateMember(member.id, {
+      secondary_members: updatedSecondary as any,
+      total_covered_persons: 1 + updatedSecondary.length,
     });
 
     setNewSecondary({ name: "", relationship: "", dateOfBirth: "" });
@@ -66,10 +68,10 @@ const MemberProfile = () => {
   };
 
   const handleRemoveSecondary = async (smId: string) => {
-    const updatedSecondary = member.secondaryMembers.filter(s => s.id !== smId);
-    await updateMember(member.id!, {
-      secondaryMembers: updatedSecondary,
-      totalCoveredPersons: 1 + updatedSecondary.length,
+    const updatedSecondary = secondaryMembers.filter(s => s.id !== smId);
+    await updateMember(member.id, {
+      secondary_members: updatedSecondary as any,
+      total_covered_persons: 1 + updatedSecondary.length,
     });
     toast.success("Membre secondaire retiré");
   };
@@ -85,17 +87,17 @@ const MemberProfile = () => {
           <img src={member.photo} alt="" className="w-16 h-16 rounded-full object-cover shrink-0" />
         ) : (
           <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xl font-display font-bold shrink-0">
-            {member.firstName[0]}{member.lastName[0]}
+            {member.first_name[0]}{member.last_name[0]}
           </div>
         )}
         <div className="flex-1">
-          <h1 className="text-2xl font-display font-bold text-bordeaux-dark">{member.lastName} {member.firstName}</h1>
+          <h1 className="text-2xl font-display font-bold text-bordeaux-dark">{member.last_name} {member.first_name}</h1>
           <div className="flex items-center gap-2 mt-1">
-            <span className="text-sm font-medium text-accent">{member.memberId}</span>
+            <span className="text-sm font-medium text-accent">{member.member_id}</span>
             <Badge className={`text-[10px] ${statusColor[member.status]}`}>{member.status}</Badge>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            Inscrit le {new Date(member.registrationDate).toLocaleDateString("fr-FR")} — {member.totalCoveredPersons} personne(s) couverte(s)
+            Inscrit le {new Date(member.registration_date).toLocaleDateString("fr-FR")} — {member.total_covered_persons} personne(s) couverte(s)
           </p>
         </div>
       </div>
@@ -109,12 +111,12 @@ const MemberProfile = () => {
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <InfoRow label="Téléphone" value={member.phone} />
-            {member.phoneSecondary && <InfoRow label="Tél. secondaire" value={member.phoneSecondary} />}
+            {member.phone_secondary && <InfoRow label="Tél. secondaire" value={member.phone_secondary} />}
             {member.whatsapp && <InfoRow label="WhatsApp" value={member.whatsapp} />}
             <InfoRow label="Campement" value={member.campement} />
-            <InfoRow label="Sous-préfecture" value={member.sousPrefecture} />
-            <InfoRow label="Pièce d'identité" value={`${member.idType} — ${member.idNumber}`} />
-            <InfoRow label="Droit d'adhésion" value={member.adhesionPaid ? "✓ Payé (10 000 FCFA)" : "✗ Non payé"} />
+            <InfoRow label="Sous-préfecture" value={member.sous_prefecture} />
+            <InfoRow label="Pièce d'identité" value={`${member.id_type} — ${member.id_number || "N/A"}`} />
+            <InfoRow label="Droit d'adhésion" value={member.adhesion_paid ? "✓ Payé (10 000 FCFA)" : "✗ Non payé"} />
           </CardContent>
         </Card>
 
@@ -122,9 +124,9 @@ const MemberProfile = () => {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold flex items-center gap-2 justify-between">
               <span className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-primary" /> Membres secondaires ({member.secondaryMembers.length}/2)
+                <Users className="h-4 w-4 text-primary" /> Membres secondaires ({secondaryMembers.length}/2)
               </span>
-              {member.secondaryMembers.length < 2 && (
+              {secondaryMembers.length < 2 && (
                 <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => setShowAddSecondary(true)}>
                   <UserPlus className="h-3 w-3 mr-1" /> Ajouter
                 </Button>
@@ -132,11 +134,11 @@ const MemberProfile = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {member.secondaryMembers.length === 0 ? (
+            {secondaryMembers.length === 0 ? (
               <p className="text-sm text-muted-foreground">Aucun membre secondaire</p>
             ) : (
               <div className="space-y-2">
-                {member.secondaryMembers.map((sm) => (
+                {secondaryMembers.map((sm) => (
                   <div key={sm.id} className="flex items-center justify-between p-2 rounded bg-secondary/50">
                     <div>
                       <p className="text-sm font-medium">{sm.name}</p>
@@ -171,16 +173,16 @@ const MemberProfile = () => {
             <div className="space-y-2">
               {contributions.map((c) => {
                 const badgeColor: Record<string, string> = {
-                  payé: "bg-success-light text-success",
-                  non_payé: "bg-destructive-light text-destructive",
+                  "payé": "bg-success-light text-success",
+                  "non_payé": "bg-destructive-light text-destructive",
                   partiel: "bg-warning/10 text-warning",
-                  exonéré: "bg-primary/10 text-primary",
+                  "exonéré": "bg-primary/10 text-primary",
                 };
                 return (
                   <div key={c.id} className="flex items-center justify-between p-2 rounded bg-secondary/30">
                     <div>
-                      <p className="text-sm">{c.amount.toLocaleString("fr-FR")} / {c.expectedAmount.toLocaleString("fr-FR")} FCFA</p>
-                      <p className="text-xs text-muted-foreground">{c.paymentMethod} {c.date ? `— ${new Date(c.date).toLocaleDateString("fr-FR")}` : ""}</p>
+                      <p className="text-sm">{c.amount.toLocaleString("fr-FR")} / {c.expected_amount.toLocaleString("fr-FR")} FCFA</p>
+                      <p className="text-xs text-muted-foreground">{c.payment_method} {c.date ? `— ${new Date(c.date).toLocaleDateString("fr-FR")}` : ""}</p>
                     </div>
                     <Badge className={`text-[10px] ${badgeColor[c.status]}`}>{c.status.replace("_", " ")}</Badge>
                   </div>
@@ -195,12 +197,11 @@ const MemberProfile = () => {
         <Button className="bg-accent hover:bg-accent/90 text-accent-foreground" onClick={() => navigate(`/cards?member=${member.id}`)}>
           <CreditCard className="h-4 w-4 mr-1" /> Générer la carte
         </Button>
-        <Button variant="outline" onClick={() => navigate(`/contributions?member=${member.memberId}`)}>
+        <Button variant="outline" onClick={() => navigate(`/contributions?member=${member.member_id}`)}>
           <Coins className="h-4 w-4 mr-1" /> Enregistrer cotisation
         </Button>
       </div>
 
-      {/* Add Secondary Member Dialog */}
       <Dialog open={showAddSecondary} onOpenChange={setShowAddSecondary}>
         <DialogContent className="max-w-sm">
           <DialogHeader>

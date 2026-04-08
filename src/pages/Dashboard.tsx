@@ -1,6 +1,8 @@
-import { Users, Skull, Landmark, AlertTriangle, TrendingUp, UserPlus, Coins } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Users, Skull, Landmark, AlertTriangle, TrendingUp, UserPlus, Coins, ScanLine } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { useMembers, useDeaths, useTreasury, useAllContributions } from "@/db/useDb";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -31,6 +33,7 @@ const formatCFA = (n: number) => n.toLocaleString("fr-FR") + " FCFA";
 const COLORS = ["hsl(var(--success))", "hsl(var(--warning))", "hsl(var(--destructive))", "hsl(var(--accent))"];
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const { members } = useMembers();
   const { deaths } = useDeaths();
   const allContributions = useAllContributions();
@@ -39,25 +42,22 @@ const Dashboard = () => {
   const activeMembers = members.filter((m) => m.status === "actif").length;
   const suspendedMembers = members.filter((m) => m.status === "suspendu").length;
   const deceasedMembers = members.filter((m) => m.status === "décédé").length;
-  const totalCovered = members.reduce((a, m) => a + m.totalCoveredPersons, 0);
+  const totalCovered = members.reduce((a, m) => a + m.total_covered_persons, 0);
   const ongoingDeaths = deaths.filter((d) => d.status === "en_cours");
   const lateContributions = allContributions.filter((c) => c.status === "non_payé" || c.status === "partiel");
 
-  // Chart data: member status distribution
   const statusData = [
     { name: "Actifs", value: activeMembers, color: COLORS[0] },
     { name: "Suspendus", value: suspendedMembers, color: COLORS[1] },
     { name: "Décédés", value: deceasedMembers, color: COLORS[2] },
   ].filter(d => d.value > 0);
 
-  // Chart data: contributions by death
   const contributionsByDeath = deaths.map(d => ({
-    name: d.deceasedName.split(" ").pop() || d.deceasedName,
-    attendu: d.totalExpectedContributions,
-    collecté: d.totalCollected,
+    name: d.deceased_name.split(" ").pop() || d.deceased_name,
+    attendu: d.total_expected_contributions,
+    collecté: d.total_collected,
   }));
 
-  // Chart data: contribution status breakdown
   const contribStatusData = [
     { name: "Payé", value: allContributions.filter(c => c.status === "payé").length },
     { name: "Non payé", value: allContributions.filter(c => c.status === "non_payé").length },
@@ -65,14 +65,13 @@ const Dashboard = () => {
     { name: "Exonéré", value: allContributions.filter(c => c.status === "exonéré").length },
   ].filter(d => d.value > 0);
 
-  // Chart data: financial summary over deaths (timeline)
   let cumulCollected = 0;
   let cumulPayouts = 0;
   const financialTimeline = deaths.map(d => {
-    cumulCollected += d.totalCollected;
+    cumulCollected += d.total_collected;
     cumulPayouts += d.payout;
     return {
-      name: d.deceasedName.split(" ").pop() || d.deceasedName,
+      name: d.deceased_name.split(" ").pop() || d.deceased_name,
       collecté: cumulCollected,
       versé: cumulPayouts,
     };
@@ -80,21 +79,25 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl md:text-3xl font-display font-bold text-bordeaux-dark">Tableau de bord</h1>
-        <p className="text-sm text-muted-foreground mt-1">Aperçu de la mutuelle funéraire</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-display font-bold text-bordeaux-dark">Tableau de bord</h1>
+          <p className="text-sm text-muted-foreground mt-1">Aperçu de la mutuelle funéraire</p>
+        </div>
+        <Button className="bg-accent hover:bg-accent/90 text-accent-foreground" onClick={() => navigate("/scanner")}>
+          <ScanLine className="h-4 w-4 mr-2" /> Scanner QR
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard icon={Users} label="Membres actifs" value={String(activeMembers)} sub={`${totalCovered} personnes couvertes`} iconColor="bg-secondary text-primary" />
         <StatCard icon={Skull} label="Décès en cours" value={String(ongoingDeaths.length)} sub="Collecte de cotisations" iconColor="bg-destructive-light text-destructive" />
-        <StatCard icon={Landmark} label="Solde caisse" value={formatCFA(treasury?.totalBalance ?? 0)} iconColor="bg-or-light text-accent" />
+        <StatCard icon={Landmark} label="Solde caisse" value={formatCFA(treasury?.total_balance ?? 0)} iconColor="bg-or-light text-accent" />
         <StatCard icon={AlertTriangle} label="Cotisations en retard" value={String(lateContributions.length)} sub="Membres à relancer" iconColor="bg-warning/10 text-warning" />
       </div>
 
-      {/* Charts Row */}
+      {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Member Status Pie */}
         <Card className="border-border/50">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
@@ -117,7 +120,6 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Contributions by Death Bar */}
         <Card className="border-border/50">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
@@ -145,7 +147,6 @@ const Dashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Contribution Status Pie */}
         <Card className="border-border/50">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
@@ -168,7 +169,6 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Financial Timeline */}
         <Card className="border-border/50">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
@@ -200,8 +200,7 @@ const Dashboard = () => {
         <Card className="border-border/50">
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
-              <Skull className="h-4 w-4 text-destructive" />
-              Décès en cours de collecte
+              <Skull className="h-4 w-4 text-destructive" /> Décès en cours de collecte
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -212,17 +211,17 @@ const Dashboard = () => {
                 <div key={death.id} className="p-3 rounded-lg bg-secondary/50 border border-border/30">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-semibold text-sm">{death.deceasedName}</p>
-                      <p className="text-xs text-muted-foreground">{death.deceasedMemberId} — {death.type === "principal" ? "Membre principal" : "Membre secondaire"}</p>
+                      <p className="font-semibold text-sm">{death.deceased_name}</p>
+                      <p className="text-xs text-muted-foreground">{death.deceased_member_id} — {death.type === "principal" ? "Membre principal" : "Membre secondaire"}</p>
                     </div>
                     <Badge variant="outline" className="bg-destructive-light text-destructive border-destructive/20 text-[10px]">En cours</Badge>
                   </div>
                   <div className="mt-2 flex items-center gap-4 text-xs text-muted-foreground">
                     <span>Versement : <strong className="text-foreground">{formatCFA(death.payout)}</strong></span>
-                    <span>Collecté : <strong className="text-accent">{formatCFA(death.totalCollected)}</strong> / {formatCFA(death.totalExpectedContributions)}</span>
+                    <span>Collecté : <strong className="text-accent">{formatCFA(death.total_collected)}</strong> / {formatCFA(death.total_expected_contributions)}</span>
                   </div>
                   <div className="mt-2 h-1.5 bg-border rounded-full overflow-hidden">
-                    <div className="h-full bg-accent rounded-full transition-all" style={{ width: `${Math.min(100, death.totalExpectedContributions > 0 ? (death.totalCollected / death.totalExpectedContributions) * 100 : 0)}%` }} />
+                    <div className="h-full bg-accent rounded-full transition-all" style={{ width: `${Math.min(100, death.total_expected_contributions > 0 ? (death.total_collected / death.total_expected_contributions) * 100 : 0)}%` }} />
                   </div>
                 </div>
               ))
@@ -233,8 +232,7 @@ const Dashboard = () => {
         <Card className="border-border/50">
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-accent" />
-              Activité récente
+              <TrendingUp className="h-4 w-4 text-accent" /> Activité récente
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -243,24 +241,24 @@ const Dashboard = () => {
                 <p className="text-sm text-muted-foreground">Aucune activité — commencez par inscrire des membres</p>
               ) : (
                 <>
-                  {members.slice(-3).reverse().map((m, i) => (
+                  {members.slice(0, 3).map((m, i) => (
                     <div key={`m-${i}`} className="flex items-start gap-3">
                       <div className="mt-0.5 text-success"><UserPlus className="h-4 w-4" /></div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium">{m.firstName} {m.lastName} inscrit</p>
-                        <p className="text-xs text-muted-foreground">{m.memberId}</p>
+                        <p className="text-sm font-medium">{m.first_name} {m.last_name} inscrit</p>
+                        <p className="text-xs text-muted-foreground">{m.member_id}</p>
                       </div>
-                      <span className="text-[10px] text-muted-foreground shrink-0">{new Date(m.registrationDate).toLocaleDateString("fr-FR")}</span>
+                      <span className="text-[10px] text-muted-foreground shrink-0">{new Date(m.registration_date).toLocaleDateString("fr-FR")}</span>
                     </div>
                   ))}
-                  {deaths.slice(-2).reverse().map((d, i) => (
+                  {deaths.slice(0, 2).map((d, i) => (
                     <div key={`d-${i}`} className="flex items-start gap-3">
                       <div className="mt-0.5 text-destructive"><Skull className="h-4 w-4" /></div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium">Décès — {d.deceasedName}</p>
-                        <p className="text-xs text-muted-foreground">{d.deceasedMemberId}</p>
+                        <p className="text-sm font-medium">Décès — {d.deceased_name}</p>
+                        <p className="text-xs text-muted-foreground">{d.deceased_member_id}</p>
                       </div>
-                      <span className="text-[10px] text-muted-foreground shrink-0">{new Date(d.dateOfDeath).toLocaleDateString("fr-FR")}</span>
+                      <span className="text-[10px] text-muted-foreground shrink-0">{new Date(d.date_of_death).toLocaleDateString("fr-FR")}</span>
                     </div>
                   ))}
                 </>
@@ -279,10 +277,10 @@ const Dashboard = () => {
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
-                { label: "Total collecté", value: formatCFA(treasury.totalContributionsCollected) },
-                { label: "Versements effectués", value: formatCFA(treasury.totalPayouts) },
-                { label: "Réserves retenues", value: formatCFA(treasury.retainedReserves) },
-                { label: "Cotisations en attente", value: formatCFA(treasury.pendingContributions) },
+                { label: "Total collecté", value: formatCFA(treasury.total_contributions_collected) },
+                { label: "Versements effectués", value: formatCFA(treasury.total_payouts) },
+                { label: "Réserves retenues", value: formatCFA(treasury.retained_reserves) },
+                { label: "Cotisations en attente", value: formatCFA(treasury.pending_contributions) },
               ].map((item, i) => (
                 <div key={i}>
                   <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{item.label}</p>
