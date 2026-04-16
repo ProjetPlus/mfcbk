@@ -119,7 +119,8 @@ const Login = () => {
         </Card>
 
         <p className="text-[10px] text-muted-foreground text-center">
-          Mutuelle Funéraire — Camp Béthel de Kouassikandro<br />
+          {associationName}<br />
+          {associationPhone && <>Contact : {associationPhone}<br /></>}
           Région du Haut-Sassandra — Côte d'Ivoire
         </p>
       </div>
