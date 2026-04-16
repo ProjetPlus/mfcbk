@@ -95,6 +95,7 @@ async function generateCardPDF(member: DbMember, settings?: DbSettings) {
 
 const Cards = () => {
   const { members } = useMembers();
+  const { settings } = useSettings();
   const [previewMember, setPreviewMember] = useState<DbMember | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>("");
   const [generating, setGenerating] = useState<string | null>(null);
@@ -103,7 +104,7 @@ const Cards = () => {
 
   const handlePreview = async (member: DbMember) => {
     setPreviewMember(member);
-    const doc = await generateCardPDF(member);
+    const doc = await generateCardPDF(member, settings);
     const blob = doc.output("blob");
     setPreviewUrl(URL.createObjectURL(blob));
   };
@@ -111,7 +112,7 @@ const Cards = () => {
   const handleDownload = async (member: DbMember) => {
     setGenerating(member.id);
     try {
-      const doc = await generateCardPDF(member);
+      const doc = await generateCardPDF(member, settings);
       doc.save(`Carte_${member.member_id}.pdf`);
       toast.success("Carte générée", { description: `${member.last_name} ${member.first_name}` });
     } catch {
