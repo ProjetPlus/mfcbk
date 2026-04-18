@@ -112,15 +112,44 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
     font-family: 'DM Sans', sans-serif;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   }
 
-  h1 {
+  h1, h2 {
     font-family: 'Playfair Display', serif;
+    letter-spacing: -0.02em;
   }
 
-  h2, h3 {
+  h3, h4 {
     font-family: 'DM Sans', sans-serif;
+    letter-spacing: -0.01em;
+    font-weight: 600;
   }
+}
+
+@layer utilities {
+  .gradient-bordeaux {
+    background: linear-gradient(135deg, hsl(var(--bordeaux-dark)), hsl(var(--bordeaux)));
+  }
+  .gradient-or {
+    background: linear-gradient(135deg, hsl(var(--or)), hsl(43 60% 64%));
+  }
+  .shadow-elegant {
+    box-shadow: 0 4px 24px -8px hsl(var(--bordeaux) / 0.15), 0 2px 8px -4px hsl(var(--bordeaux) / 0.1);
+  }
+  .shadow-or {
+    box-shadow: 0 8px 32px -12px hsl(var(--or) / 0.4);
+  }
+  .text-bordeaux-dark { color: hsl(var(--bordeaux-dark)); }
+  .text-bordeaux { color: hsl(var(--bordeaux)); }
+  .bg-creme { background-color: hsl(var(--creme)); }
+  .bg-or-light { background-color: hsl(var(--or-light)); }
+  .text-or { color: hsl(var(--or)); }
+  .text-success { color: hsl(var(--success)); }
+  .bg-success-light { background-color: hsl(var(--success-light)); }
+  .text-warning { color: hsl(var(--warning)); }
+  .bg-info-bg { background-color: hsl(var(--info-bg)); }
+  .bg-destructive-light { background-color: hsl(var(--destructive-light)); }
 }
