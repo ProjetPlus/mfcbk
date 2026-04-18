@@ -1,7 +1,8 @@
-import { BarChart3, FileDown, BookOpen } from "lucide-react";
+import { BarChart3, FileDown, BookOpen, FileSpreadsheet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useMembers, useDeaths, useAllContributions, useTreasury, useSettings } from "@/db/useDb";
+import { exportMembersXLSX, exportContributionsXLSX } from "@/lib/exports";
 import jsPDF from "jspdf";
 import { toast } from "sonner";
 
@@ -85,7 +86,7 @@ const Reports = () => {
     toast.success("PDF généré");
   };
 
-  // ---------- Carnet de cotisations A5 (1 page par membre) ----------
+  // ---------- Carnet de cotisations A5 (couverture verte + 1 page par membre) ----------
   const exportContributionBookletsPDF = () => {
     const assocName = (settings?.association_name || "Association des Chrétiens de Kouassikankro").toUpperCase();
     const assocShort = settings?.initials ? `AS.${settings.initials}.K` : "AS.CHRIS.K";
@@ -96,6 +97,98 @@ const Reports = () => {
     const W = 148, H = 210;
     const ROWS = 18;
     const margin = 8;
+
+    // ==== Couverture verte ====
+    const renderCover = (member: typeof activeMembers[0], num: number) => {
+      doc.setFillColor(46, 125, 50); // vert profond
+      doc.rect(0, 0, W, H, "F");
+      doc.setFillColor(34, 95, 38);
+      doc.rect(0, 0, W, 8, "F");
+      doc.rect(0, H - 8, W, 8, "F");
+
+      // Drapeau CI mini
+      doc.setFillColor(255, 130, 0); doc.rect(W / 2 - 12, 18, 8, 5, "F");
+      doc.setFillColor(255, 255, 255); doc.rect(W / 2 - 4, 18, 8, 5, "F");
+      doc.setFillColor(0, 158, 96); doc.rect(W / 2 + 4, 18, 8, 5, "F");
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.text("RÉPUBLIQUE DE CÔTE D'IVOIRE", W / 2, 32, { align: "center" });
+      doc.setFontSize(7);
+      doc.setFont("helvetica", "normal");
+      doc.text("Union — Discipline — Travail", W / 2, 37, { align: "center" });
+
+      // Logo placeholder cercle
+      doc.setFillColor(255, 255, 255);
+      doc.circle(W / 2, 70, 22, "F");
+      doc.setTextColor(46, 125, 50);
+      doc.setFontSize(20);
+      doc.setFont("helvetica", "bold");
+      doc.text(assocShort, W / 2, 73, { align: "center" });
+      doc.setFontSize(6);
+      doc.setFont("helvetica", "normal");
+      doc.text("Mutuelle Funéraire", W / 2, 80, { align: "center" });
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(13);
+      doc.setFont("helvetica", "bold");
+      const titleLines = doc.splitTextToSize(assocName, W - 30);
+      doc.text(titleLines, W / 2, 110, { align: "center" });
+
+      // Encart porteur
+      doc.setFillColor(255, 255, 255);
+      doc.roundedRect(15, 140, W - 30, 45, 3, 3, "F");
+      doc.setTextColor(46, 125, 50);
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "bold");
+      doc.text("CARNET DE COTISATIONS", W / 2, 148, { align: "center" });
+      doc.setDrawColor(46, 125, 50);
+      doc.line(30, 151, W - 30, 151);
+
+      doc.setTextColor(60, 60, 60);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7);
+      doc.text("Délivré à :", 20, 158);
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(0, 0, 0);
+      doc.text(`${member.last_name} ${member.first_name}`.toUpperCase(), W / 2, 165, { align: "center" });
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(46, 125, 50);
+      doc.text(`N° Carnet : ${member.member_id}`, W / 2, 172, { align: "center" });
+      doc.setTextColor(80, 80, 80);
+      doc.setFontSize(7);
+      doc.text(`Campement : ${member.campement || "—"}`, W / 2, 178, { align: "center" });
+      doc.text(`Sous-préfecture : ${member.sous_prefecture || "—"}`, W / 2, 182, { align: "center" });
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(6);
+      doc.text(`Carnet ${num} / ${activeMembers.length}  —  Émis le ${new Date().toLocaleDateString("fr-FR")}`, W / 2, H - 4, { align: "center" });
+    };
+
+    activeMembers.forEach((m, idx) => {
+      if (idx > 0) doc.addPage("a5", "portrait");
+      renderCover(m, idx + 1);
+      doc.addPage("a5", "portrait");
+
+      // ==== Page intérieure : tableau cotisations ====
+      doc.setDrawColor(46, 125, 50);
+      doc.setLineWidth(0.6);
+      doc.roundedRect(margin / 2 + 2, margin / 2 + 2, W - margin - 4, H - margin - 4, 4, 4);
+      doc.setLineWidth(0.2);
+      doc.roundedRect(margin / 2 + 3, margin / 2 + 3, W - margin - 6, H - margin - 6, 3.5, 3.5);
+
+      doc.setTextColor(46, 125, 50);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.text(assocShort, W / 2, 16, { align: "center" });
+      doc.setFontSize(7);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(80, 80, 80);
+      doc.text(assocName.slice(0, 70), W / 2, 21, { align: "center" });
+      doc.text("République de Côte d'Ivoire — Union, Discipline, Travail", W / 2, 25, { align: "center" });
 
     activeMembers.forEach((m, idx) => {
       if (idx > 0) doc.addPage("a5", "portrait");
