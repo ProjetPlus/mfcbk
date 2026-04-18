@@ -270,33 +270,40 @@ const Reports = () => {
   };
 
   const reports = [
-    { title: "Carnet de cotisations (A5, 1 page/membre)", desc: "Format papier officiel — DATE / DÉFUNT(E) / MONTANT / VISA", action: exportContributionBookletsPDF, icon: BookOpen },
-    { title: "Liste complète des membres", desc: "Tous les membres avec statuts", action: exportMembersPDF, icon: BarChart3 },
-    { title: "Rapport de cotisations par décès", desc: "Détail par décès avec statuts de paiement", action: exportContributionsPDF, icon: BarChart3 },
-    { title: "Rapport financier — Caisse", desc: "Entrées, sorties et solde", action: exportFinancePDF, icon: BarChart3 },
-    { title: "Membres en retard de cotisation", desc: "Liste des membres avec cotisations impayées", action: exportLatePDF, icon: BarChart3 },
+    { title: "Carnet de cotisations (A5, couverture verte + 1 page/membre)", desc: "Format papier officiel — Couverture République CI + DATE / DÉFUNT(E) / MONTANT / VISA", action: exportContributionBookletsPDF, icon: BookOpen, xlsx: null },
+    { title: "Liste complète des membres", desc: "Tous les membres avec statuts", action: exportMembersPDF, icon: BarChart3, xlsx: async () => { try { await exportMembersXLSX(members); toast.success("Excel généré"); } catch { toast.error("Erreur Excel"); } } },
+    { title: "Rapport de cotisations par décès", desc: "Détail par décès avec statuts de paiement", action: exportContributionsPDF, icon: BarChart3, xlsx: async () => { try { await exportContributionsXLSX(contributions, deaths); toast.success("Excel généré"); } catch { toast.error("Erreur Excel"); } } },
+    { title: "Rapport financier — Caisse", desc: "Entrées, sorties et solde", action: exportFinancePDF, icon: BarChart3, xlsx: null },
+    { title: "Membres en retard de cotisation", desc: "Liste des membres avec cotisations impayées", action: exportLatePDF, icon: BarChart3, xlsx: null },
   ];
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl md:text-3xl font-display font-bold text-bordeaux-dark">Rapports & Exports</h1>
-        <p className="text-sm text-muted-foreground mt-1">Génération de rapports PDF</p>
+        <p className="text-sm text-muted-foreground mt-1">Génération de rapports PDF et Excel</p>
       </div>
       {reports.map((r, i) => {
         const Icon = r.icon;
         return (
-          <Card key={i} className="border-border/50">
+          <Card key={i} className="border-border/50 shadow-elegant">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <Icon className="h-4 w-4 text-accent" /> {r.title}
               </CardTitle>
             </CardHeader>
-            <CardContent className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground">{r.desc}</p>
-              <Button size="sm" variant="outline" className="text-xs h-8" onClick={r.action}>
-                <FileDown className="h-3 w-3 mr-1" /> PDF
-              </Button>
+            <CardContent className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs text-muted-foreground flex-1 min-w-[200px]">{r.desc}</p>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" className="text-xs h-8" onClick={r.action}>
+                  <FileDown className="h-3 w-3 mr-1" /> PDF
+                </Button>
+                {r.xlsx && (
+                  <Button size="sm" variant="outline" className="text-xs h-8 border-success/40 text-success hover:bg-success/10" onClick={r.xlsx}>
+                    <FileSpreadsheet className="h-3 w-3 mr-1" /> Excel
+                  </Button>
+                )}
+              </div>
             </CardContent>
           </Card>
         );
