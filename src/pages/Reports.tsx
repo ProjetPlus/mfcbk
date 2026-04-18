@@ -172,12 +172,6 @@ const Reports = () => {
       if (idx > 0) doc.addPage("a5", "portrait");
       renderCover(m, idx + 1);
       doc.addPage("a5", "portrait");
-    };
-
-    activeMembers.forEach((m, idx) => {
-      if (idx > 0) doc.addPage("a5", "portrait");
-      renderCover(m, idx + 1);
-      doc.addPage("a5", "portrait");
 
       // ==== Page intérieure : tableau cotisations ====
       doc.setDrawColor(46, 125, 50);
