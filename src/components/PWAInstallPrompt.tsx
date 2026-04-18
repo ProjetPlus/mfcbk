@@ -16,7 +16,7 @@ export function PWAInstallPrompt() {
           <Download className="h-5 w-5" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-display font-bold text-sm">Installer Camp Béthel</p>
+          <p className="font-display font-bold text-sm">Installer AS.CHRIS.K</p>
           <p className="text-xs opacity-80 mt-0.5">
             Installez l'application pour un accès rapide et hors-ligne
           </p>
