@@ -7,6 +7,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useSettings } from "@/db/useDb";
 import { toast } from "sonner";
 
+function FieldRow({ label, value, onChange, type = "text" }: { label: string; value: string; onChange: (v: string) => void; type?: string }) {
+  return (
+    <div className="space-y-2">
+      <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">{label}</Label>
+      <Input type={type} value={value} onChange={(e) => onChange(e.target.value)} className="h-10" />
+    </div>
+  );
+}
+
 const SettingsPage = () => {
   const { settings, updateSettings } = useSettings();
   const [form, setForm] = useState<Record<string, string>>({});
@@ -86,14 +95,5 @@ const SettingsPage = () => {
     </div>
   );
 };
-
-function FieldRow({ label, value, onChange, type = "text" }: { label: string; value: string; onChange: (v: string) => void; type?: string }) {
-  return (
-    <div className="space-y-2">
-      <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">{label}</Label>
-      <Input type={type} value={value} onChange={(e) => onChange(e.target.value)} className="h-10" />
-    </div>
-  );
-}
 
 export default SettingsPage;

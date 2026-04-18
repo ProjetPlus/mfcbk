@@ -1,5 +1,5 @@
 // Service Worker — cache app shell for full offline use
-const CACHE = "aschrisk-v3";
+const CACHE = "aschrisk-v4";
 const ASSETS = [
   "/",
   "/index.html",

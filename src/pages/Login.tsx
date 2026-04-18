@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { authenticateUser } from "@/db/useDb";
 import { useSettings } from "@/db/useDb";
-import logo from "@/assets/logo-camp-bethel.png";
+import logo from "@/assets/logo-aschrisk.png";
 
 const Login = () => {
   const navigate = useNavigate();

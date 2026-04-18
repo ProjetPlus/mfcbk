@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, ScanLine, UserPlus, Filter, ChevronRight } from "lucide-react";
+import { Search, ScanLine, UserPlus, Filter, ChevronRight, FileSpreadsheet } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useMembers } from "@/db/useDb";
+import { exportMembersXLSX } from "@/lib/exports";
+import { toast } from "sonner";
 
 const statusColors: Record<string, string> = {
   actif: "bg-success-light text-success border-success/20",
@@ -38,9 +40,20 @@ const Members = () => {
           <h1 className="text-2xl md:text-3xl font-display font-bold text-bordeaux-dark">Membres</h1>
           <p className="text-sm text-muted-foreground">{members.length} membres enregistrés</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={() => navigate("/scanner")}>
             <ScanLine className="h-4 w-4 mr-1" /> Scanner
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={async () => {
+              try { await exportMembersXLSX(filtered); toast.success("Export Excel généré"); }
+              catch { toast.error("Erreur lors de l'export"); }
+            }}
+            disabled={filtered.length === 0}
+          >
+            <FileSpreadsheet className="h-4 w-4 mr-1" /> Excel
           </Button>
           <Button size="sm" className="bg-accent hover:bg-accent/90 text-accent-foreground" onClick={() => navigate("/register")}>
             <UserPlus className="h-4 w-4 mr-1" /> Inscrire

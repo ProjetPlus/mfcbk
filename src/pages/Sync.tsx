@@ -19,7 +19,7 @@ const Sync = () => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `campbethel_backup_${new Date().toISOString().split("T")[0]}.json`;
+      a.download = `aschrisk_backup_${new Date().toISOString().split("T")[0]}.json`;
       a.click();
       URL.revokeObjectURL(url);
       toast.success("Export réussi", { description: "Fichier JSON téléchargé" });

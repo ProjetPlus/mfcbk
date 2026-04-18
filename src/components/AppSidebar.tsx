@@ -3,8 +3,8 @@ import {
   CreditCard, Settings, Shield, RefreshCw
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
-import { useLocation } from "react-router-dom";
-import logo from "@/assets/logo-camp-bethel.png";
+import logo from "@/assets/logo-aschrisk.png";
+import { useSettings } from "@/db/useDb";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
   SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
@@ -31,9 +31,12 @@ const adminItems = [
 ];
 
 function SidebarSection({ label, items }: { label: string; items: typeof mainItems }) {
-  const { state } = useSidebar();
+  const { state, isMobile, setOpenMobile } = useSidebar();
   const collapsed = state === "collapsed";
-  const location = useLocation();
+
+  const handleClick = () => {
+    if (isMobile) setOpenMobile(false);
+  };
 
   return (
     <SidebarGroup>
@@ -48,6 +51,7 @@ function SidebarSection({ label, items }: { label: string; items: typeof mainIte
                 <NavLink
                   to={item.url}
                   end
+                  onClick={handleClick}
                   className="hover:bg-sidebar-accent transition-colors"
                   activeClassName="bg-sidebar-accent text-sidebar-primary font-semibold"
                 >
@@ -66,14 +70,16 @@ function SidebarSection({ label, items }: { label: string; items: typeof mainIte
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
+  const { settings } = useSettings();
+  const shortName = settings?.initials ? `AS.${settings.initials}.K` : "AS.CHRIS.K";
 
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="p-4 flex items-center gap-3">
-        <img src={logo} alt="Camp Béthel" className="w-10 h-10 rounded-full shrink-0" />
+        <img src={logo} alt={shortName} className="w-10 h-10 rounded-full shrink-0 bg-white/10 p-1" />
         {!collapsed && (
           <div className="flex flex-col leading-tight">
-            <span className="text-sidebar-primary font-display font-bold text-sm">CAMP BÉTHEL</span>
+            <span className="text-sidebar-primary font-display font-bold text-sm">{shortName}</span>
             <span className="text-sidebar-foreground/60 text-[10px]">Mutuelle Funéraire</span>
           </div>
         )}

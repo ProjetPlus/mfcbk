@@ -45,7 +45,10 @@ export function useMembers() {
       return;
     }
     const { error } = await supabase.from("members").insert(member as any);
-    if (error) throw error;
+    if (error) {
+      console.error("[addMember] supabase error:", error);
+      throw new Error(error.message || "Erreur d'enregistrement du membre");
+    }
     await refetch();
   };
 
@@ -55,7 +58,8 @@ export function useMembers() {
       setCache("members", members.map(m => m.id === id ? { ...m, ...changes } : m));
       return;
     }
-    await supabase.from("members").update(changes as any).eq("id", id);
+    const { error } = await supabase.from("members").update(changes as any).eq("id", id);
+    if (error) { console.error("[updateMember]", error); throw new Error(error.message); }
     await refetch();
   };
 
@@ -65,7 +69,8 @@ export function useMembers() {
       setCache("members", members.filter(m => m.id !== id));
       return;
     }
-    await supabase.from("members").delete().eq("id", id);
+    const { error } = await supabase.from("members").delete().eq("id", id);
+    if (error) { console.error("[deleteMember]", error); throw new Error(error.message); }
     await refetch();
   };
 
@@ -100,7 +105,11 @@ export function useDeaths() {
       return;
     }
     const { data: inserted, error } = await supabase.from("deaths").insert(death as any).select().single();
-    if (error) throw error;
+    if (error) { console.error("[addDeath]", error); throw new Error(error.message); }
+    
+    // Pull contribution amount dynamically from settings (changes apply everywhere)
+    const { data: settingsRow } = await supabase.from("settings").select("contribution_amount").limit(1).single();
+    const perPerson = settingsRow?.contribution_amount ?? 1000;
     
     const { data: activeMembers } = await supabase.from("members").select("*").eq("status", "actif");
     if (activeMembers && inserted) {
@@ -109,7 +118,7 @@ export function useDeaths() {
         member_name: `${m.first_name} ${m.last_name}`,
         death_id: inserted.id,
         amount: 0,
-        expected_amount: m.total_covered_persons * 1000,
+        expected_amount: m.total_covered_persons * perPerson,
         payment_method: "especes",
         status: "non_payé",
       }));
