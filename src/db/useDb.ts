@@ -1,14 +1,22 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { DbMember, DbDeath, DbContribution, DbTreasury, DbUser, DbSettings } from "./database";
+import { getCache, setCache, getCacheSingle, setCacheSingle, enqueue, isOnline, authenticateOffline, cacheUserCredentials } from "@/lib/offline";
 
 function useSupabaseTable<T>(table: string) {
-  const [data, setData] = useState<T[]>([]);
+  const [data, setData] = useState<T[]>(() => getCache<T>(table));
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
-    const { data: rows } = await (supabase as any).from(table).select("*").order("created_at", { ascending: false });
-    setData((rows || []) as unknown as T[]);
+    if (!isOnline()) { setLoading(false); return; }
+    try {
+      const { data: rows } = await (supabase as any).from(table).select("*").order("created_at", { ascending: false });
+      const list = (rows || []) as unknown as T[];
+      setData(list);
+      setCache(table, list);
+    } catch (e) {
+      console.warn("[offline] fetch failed for", table);
+    }
     setLoading(false);
   }, [table]);
 
@@ -30,17 +38,33 @@ export function useMembers() {
   const { data: members, refetch } = useSupabaseTable<DbMember>("members");
 
   const addMember = async (member: Omit<DbMember, "id" | "created_at" | "updated_at">) => {
+    if (!isOnline()) {
+      enqueue({ table: "members", op: "insert", payload: member });
+      const local = [{ ...member, id: crypto.randomUUID(), created_at: new Date().toISOString() } as any, ...members];
+      setCache("members", local);
+      return;
+    }
     const { error } = await supabase.from("members").insert(member as any);
     if (error) throw error;
     await refetch();
   };
 
   const updateMember = async (id: string, changes: Partial<DbMember>) => {
+    if (!isOnline()) {
+      enqueue({ table: "members", op: "update", payload: changes, match: { column: "id", value: id } });
+      setCache("members", members.map(m => m.id === id ? { ...m, ...changes } : m));
+      return;
+    }
     await supabase.from("members").update(changes as any).eq("id", id);
     await refetch();
   };
 
   const deleteMember = async (id: string) => {
+    if (!isOnline()) {
+      enqueue({ table: "members", op: "delete", match: { column: "id", value: id } });
+      setCache("members", members.filter(m => m.id !== id));
+      return;
+    }
     await supabase.from("members").delete().eq("id", id);
     await refetch();
   };
@@ -49,10 +73,14 @@ export function useMembers() {
 }
 
 export function useMember(id: string | undefined) {
-  const [member, setMember] = useState<DbMember | undefined>(undefined);
+  const [member, setMember] = useState<DbMember | undefined>(() => {
+    if (!id) return undefined;
+    return getCache<DbMember>("members").find(m => m.id === id);
+  });
 
   useEffect(() => {
     if (!id) return;
+    if (!isOnline()) return;
     supabase.from("members").select("*").eq("id", id).single().then(({ data }) => {
       if (data) setMember(data as unknown as DbMember);
     });
@@ -65,6 +93,12 @@ export function useDeaths() {
   const { data: deaths, refetch } = useSupabaseTable<DbDeath>("deaths");
 
   const addDeath = async (death: Omit<DbDeath, "id" | "created_at">) => {
+    if (!isOnline()) {
+      enqueue({ table: "deaths", op: "insert", payload: death });
+      const local = [{ ...death, id: crypto.randomUUID(), created_at: new Date().toISOString() } as any, ...deaths];
+      setCache("deaths", local);
+      return;
+    }
     const { data: inserted, error } = await supabase.from("deaths").insert(death as any).select().single();
     if (error) throw error;
     
@@ -90,6 +124,11 @@ export function useDeaths() {
   };
 
   const updateDeath = async (id: string, changes: Partial<DbDeath>) => {
+    if (!isOnline()) {
+      enqueue({ table: "deaths", op: "update", payload: changes, match: { column: "id", value: id } });
+      setCache("deaths", deaths.map(d => d.id === id ? { ...d, ...changes } : d));
+      return;
+    }
     await supabase.from("deaths").update(changes as any).eq("id", id);
     await refetch();
   };
@@ -98,13 +137,19 @@ export function useDeaths() {
 }
 
 export function useContributions(deathId?: string) {
-  const [contributions, setContributions] = useState<DbContribution[]>([]);
+  const [contributions, setContributions] = useState<DbContribution[]>(() => {
+    const all = getCache<DbContribution>("contributions");
+    return deathId ? all.filter(c => c.death_id === deathId) : all;
+  });
 
   const fetchContributions = useCallback(async () => {
+    if (!isOnline()) return;
     let query = supabase.from("contributions").select("*");
     if (deathId) query = query.eq("death_id", deathId);
     const { data } = await query.order("member_name");
-    setContributions((data || []) as unknown as DbContribution[]);
+    const list = (data || []) as unknown as DbContribution[];
+    setContributions(list);
+    if (!deathId) setCache("contributions", list);
   }, [deathId]);
 
   useEffect(() => {
@@ -119,6 +164,11 @@ export function useContributions(deathId?: string) {
   }, [deathId, fetchContributions]);
 
   const updateContribution = async (id: string, changes: Partial<DbContribution>) => {
+    if (!isOnline()) {
+      enqueue({ table: "contributions", op: "update", payload: changes, match: { column: "id", value: id } });
+      setContributions(contributions.map(c => c.id === id ? { ...c, ...changes } : c));
+      return;
+    }
     await supabase.from("contributions").update(changes as any).eq("id", id);
     
     const contrib = contributions.find(c => c.id === id);
@@ -143,12 +193,16 @@ export function useAllContributions() {
 }
 
 export function useTreasury() {
-  const [treasury, setTreasury] = useState<DbTreasury | undefined>(undefined);
+  const [treasury, setTreasury] = useState<DbTreasury | undefined>(() => getCacheSingle<DbTreasury>("treasury"));
 
   useEffect(() => {
     const fetch = async () => {
+      if (!isOnline()) return;
       const { data } = await supabase.from("treasury").select("*").limit(1).single();
-      if (data) setTreasury(data as unknown as DbTreasury);
+      if (data) {
+        setTreasury(data as unknown as DbTreasury);
+        setCacheSingle("treasury", data);
+      }
     };
     fetch();
     const channel = supabase
@@ -186,10 +240,12 @@ async function recalcTreasury() {
 }
 
 export function useContributionsForMember(memberId: string) {
-  const [contributions, setContributions] = useState<DbContribution[]>([]);
+  const [contributions, setContributions] = useState<DbContribution[]>(() =>
+    getCache<DbContribution>("contributions").filter(c => c.member_id === memberId)
+  );
   
   useEffect(() => {
-    if (!memberId) return;
+    if (!memberId || !isOnline()) return;
     supabase.from("contributions").select("*").eq("member_id", memberId).then(({ data }) => {
       setContributions((data || []) as unknown as DbContribution[]);
     });
@@ -226,24 +282,43 @@ export function useUsers() {
 }
 
 export async function authenticateUser(username: string, password: string): Promise<DbUser | null> {
-  const { data, error } = await supabase.rpc("authenticate_app_user" as any, {
-    p_username: username,
-    p_password: password,
-  });
-  
-  if (error || !data || (Array.isArray(data) && data.length === 0)) return null;
-  
-  const user = Array.isArray(data) ? data[0] : data;
-  return user as DbUser;
+  // Offline → check local credentials cache
+  if (!isOnline()) {
+    const offline = await authenticateOffline(username, password);
+    return offline as DbUser | null;
+  }
+
+  try {
+    const { data, error } = await supabase.rpc("authenticate_app_user" as any, {
+      p_username: username,
+      p_password: password,
+    });
+    
+    if (error || !data || (Array.isArray(data) && data.length === 0)) {
+      // Fallback to offline cache (e.g. server unreachable)
+      return (await authenticateOffline(username, password)) as DbUser | null;
+    }
+    
+    const user = (Array.isArray(data) ? data[0] : data) as DbUser;
+    // Cache credentials so the same user can log in offline next time
+    await cacheUserCredentials(username, password, user);
+    return user;
+  } catch {
+    return (await authenticateOffline(username, password)) as DbUser | null;
+  }
 }
 
 export function useSettings() {
-  const [settings, setSettings] = useState<DbSettings | undefined>(undefined);
+  const [settings, setSettings] = useState<DbSettings | undefined>(() => getCacheSingle<DbSettings>("settings"));
 
   useEffect(() => {
     const fetch = async () => {
+      if (!isOnline()) return;
       const { data } = await supabase.from("settings").select("*").limit(1).single();
-      if (data) setSettings(data as unknown as DbSettings);
+      if (data) {
+        setSettings(data as unknown as DbSettings);
+        setCacheSingle("settings", data);
+      }
     };
     fetch();
     const channel = supabase
@@ -255,8 +330,18 @@ export function useSettings() {
 
   const updateSettings = async (changes: Partial<DbSettings>) => {
     if (!settings) return;
+    if (!isOnline()) {
+      enqueue({ table: "settings", op: "update", payload: changes, match: { column: "id", value: settings.id } });
+      const updated = { ...settings, ...changes };
+      setSettings(updated);
+      setCacheSingle("settings", updated);
+      return;
+    }
     const { data } = await supabase.from("settings").update(changes as any).eq("id", settings.id).select().single();
-    if (data) setSettings(data as unknown as DbSettings);
+    if (data) {
+      setSettings(data as unknown as DbSettings);
+      setCacheSingle("settings", data);
+    }
   };
 
   return { settings, updateSettings };
