@@ -311,20 +311,19 @@ export function useSettings() {
   const [settings, setSettings] = useState<DbSettings | undefined>(() => getCacheSingle<DbSettings>("settings"));
 
   useEffect(() => {
-    const fetch = async () => {
+    const fetchS = async () => {
       if (!isOnline()) return;
-      const { data } = await supabase.from("settings").select("*").limit(1).single();
-      if (data) {
-        setSettings(data as unknown as DbSettings);
-        setCacheSingle("settings", data);
-      }
+      try {
+        const { data } = await supabase.from("settings").select("*").limit(1).single();
+        if (data) {
+          setSettings(data as unknown as DbSettings);
+          setCacheSingle("settings", data);
+        }
+      } catch (e) { console.warn("[settings] fetch failed", e); }
     };
-    fetch();
-    const channel = supabase
-      .channel(`settings_changes_${crypto.randomUUID()}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "settings" }, () => fetch())
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    fetchS();
+    const unsub = subscribeTable("settings", fetchS);
+    return unsub;
   }, []);
 
   const updateSettings = async (changes: Partial<DbSettings>) => {
