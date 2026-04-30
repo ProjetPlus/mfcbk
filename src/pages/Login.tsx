@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ScanLine, LogIn, Eye, EyeOff, AlertCircle } from "lucide-react";
+import { ScanLine, LogIn, Eye, EyeOff, AlertCircle, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,12 +8,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { authenticateUser } from "@/db/useDb";
 import { useSettings } from "@/db/useDb";
+import { useOnlineStatus } from "@/lib/online";
 import logo from "@/assets/logo-aschrisk.png";
 
 const Login = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
   const { settings } = useSettings();
+  const { online } = useOnlineStatus();
   const [showPassword, setShowPassword] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -27,15 +29,20 @@ const Login = () => {
     e.preventDefault();
     setError("");
     setLoading(true);
-    
-    const user = await authenticateUser(username, password);
-    if (user) {
-      login(user);
-      navigate("/dashboard");
-    } else {
-      setError("Identifiant ou mot de passe incorrect");
+    try {
+      const user = await authenticateUser(username.trim(), password);
+      if (user) {
+        login(user);
+        navigate("/dashboard");
+      } else {
+        setError("Identifiant ou mot de passe incorrect (vérifiez la connexion ou utilisez vos identifiants déjà enregistrés sur cet appareil)");
+      }
+    } catch (err: any) {
+      console.warn("[login] failed", err);
+      setError("Erreur de connexion. Réessayez.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -51,6 +58,14 @@ const Login = () => {
           </p>
         </div>
 
+        {!online && (
+          <div className="w-full flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/30">
+            <WifiOff className="h-4 w-4 text-destructive shrink-0" />
+            <p className="text-xs text-destructive">
+              Mode hors ligne — connectez-vous avec un identifiant déjà utilisé sur cet appareil.
+            </p>
+          </div>
+        )}
         <Button
           className="w-full h-14 text-base font-semibold bg-accent hover:bg-accent/90 text-accent-foreground shadow-md"
           onClick={() => navigate("/scanner")}
