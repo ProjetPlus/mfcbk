@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ScanLine, LogIn, Eye, EyeOff, AlertCircle } from "lucide-react";
+import { ScanLine, LogIn, Eye, EyeOff, AlertCircle, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,12 +8,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { authenticateUser } from "@/db/useDb";
 import { useSettings } from "@/db/useDb";
+import { useOnlineStatus } from "@/lib/online";
 import logo from "@/assets/logo-aschrisk.png";
 
 const Login = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
   const { settings } = useSettings();
+  const { online } = useOnlineStatus();
   const [showPassword, setShowPassword] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
