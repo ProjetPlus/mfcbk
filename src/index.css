@@ -6,62 +6,71 @@
 
 @layer base {
   :root {
-    /* Bordeaux & Or — Camp Béthel palette */
-    --background: 30 33% 97%; /* #FAF7F4 Crème */
-    --foreground: 0 0% 10%; /* #1A1A1A Noir doux */
+    /* AS.CHRIS.K — Mutuelle / Associative palette
+       Inspirée du logo "arbre de mains" : bordeaux profond + or chaud
+       + touches multicolores (vert, bleu, rose) en accents secondaires.
+       Contrastes renforcés pour une lisibilité maximale. */
+    --background: 36 38% 98%;        /* #FBF8F3 Crème très clair */
+    --foreground: 0 0% 8%;           /* #141414 Noir profond — lisibilité max */
 
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 10%;
+    --card-foreground: 0 0% 8%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 10%;
+    --popover-foreground: 0 0% 8%;
 
-    --primary: 345 65% 26%; /* #6B1A2E Bordeaux */
-    --primary-foreground: 40 60% 95%;
+    --primary: 345 70% 24%;          /* #6B1626 Bordeaux profond */
+    --primary-foreground: 40 70% 97%;
 
-    --secondary: 340 30% 95%; /* #F9F0F3 Bordeaux pâle */
-    --secondary-foreground: 345 65% 26%;
+    --secondary: 36 40% 94%;         /* #F4ECDF Crème chaud */
+    --secondary-foreground: 345 70% 22%;
 
-    --muted: 340 30% 95%;
-    --muted-foreground: 0 0% 40%; /* #666666 Gris */
+    --muted: 36 25% 92%;
+    --muted-foreground: 0 0% 28%;    /* #474747 — contraste AA renforcé */
 
-    --accent: 43 52% 54%; /* #C9A84C Or */
+    --accent: 43 78% 48%;            /* #D9A222 Or saturé */
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 6 76% 57%; /* #E74C3C Rouge */
+    --destructive: 6 78% 52%;        /* #E63E2E */
     --destructive-foreground: 0 0% 100%;
 
-    --success: 152 62% 26%; /* #1A6B4A Vert */
+    --success: 152 65% 28%;          /* #1A7A52 Vert mutuelle */
     --success-foreground: 0 0% 100%;
-    --success-light: 145 45% 92%; /* #E8F5EE */
+    --success-light: 145 50% 92%;
 
-    --warning: 28 80% 52%; /* #E67E22 Orange */
+    --warning: 28 85% 50%;
     --warning-foreground: 0 0% 100%;
 
-    --info-bg: 43 88% 93%; /* #FBF3DF Or clair */
+    --info-bg: 43 88% 93%;
 
-    --bordeaux-dark: 345 65% 18%; /* #4A0F1F */
-    --bordeaux: 345 65% 26%; /* #6B1A2E */
-    --or: 43 52% 54%; /* #C9A84C */
-    --or-light: 43 88% 93%; /* #FBF3DF */
-    --bordeaux-pale: 340 30% 95%; /* #F9F0F3 */
-    --creme: 30 33% 97%; /* #FAF7F4 */
-    --destructive-light: 6 90% 96%; /* #FDEDEC */
+    --bordeaux-dark: 345 75% 16%;
+    --bordeaux: 345 70% 24%;
+    --or: 43 78% 48%;
+    --or-light: 43 80% 92%;
+    --bordeaux-pale: 340 35% 94%;
+    --creme: 36 38% 98%;
+    --destructive-light: 6 90% 96%;
 
-    --border: 340 20% 90%;
-    --input: 340 20% 90%;
-    --ring: 43 52% 54%;
+    /* Accents associatifs (rappel logo) */
+    --hand-blue: 210 78% 48%;
+    --hand-green: 142 60% 42%;
+    --hand-pink: 340 80% 62%;
+    --hand-yellow: 48 92% 56%;
 
-    --radius: 0.5rem;
+    --border: 36 22% 84%;            /* bordures plus visibles */
+    --input: 36 22% 80%;
+    --ring: 43 78% 48%;
 
-    --sidebar-background: 345 65% 18%; /* #4A0F1F Bordeaux foncé */
-    --sidebar-foreground: 40 60% 95%;
-    --sidebar-primary: 43 52% 54%; /* Or */
-    --sidebar-primary-foreground: 345 65% 18%;
-    --sidebar-accent: 345 50% 22%;
-    --sidebar-accent-foreground: 40 60% 95%;
-    --sidebar-border: 345 50% 22%;
-    --sidebar-ring: 43 52% 54%;
+    --radius: 0.625rem;
+
+    --sidebar-background: 345 75% 14%;   /* #3D0C18 bordeaux très foncé */
+    --sidebar-foreground: 40 70% 96%;
+    --sidebar-primary: 43 82% 58%;       /* Or lumineux */
+    --sidebar-primary-foreground: 345 75% 14%;
+    --sidebar-accent: 345 55% 22%;
+    --sidebar-accent-foreground: 40 70% 96%;
+    --sidebar-border: 345 55% 22%;
+    --sidebar-ring: 43 82% 58%;
   }
 
   .dark {
@@ -134,17 +143,23 @@
     background: linear-gradient(135deg, hsl(var(--bordeaux-dark)), hsl(var(--bordeaux)));
   }
   .gradient-or {
-    background: linear-gradient(135deg, hsl(var(--or)), hsl(43 60% 64%));
+    background: linear-gradient(135deg, hsl(var(--or)), hsl(43 85% 62%));
+  }
+  .gradient-mutuelle {
+    background: linear-gradient(135deg, hsl(var(--bordeaux-dark)) 0%, hsl(var(--bordeaux)) 60%, hsl(var(--or) / 0.85) 100%);
   }
   .shadow-elegant {
-    box-shadow: 0 4px 24px -8px hsl(var(--bordeaux) / 0.15), 0 2px 8px -4px hsl(var(--bordeaux) / 0.1);
+    box-shadow: 0 4px 24px -8px hsl(var(--bordeaux) / 0.18), 0 2px 8px -4px hsl(var(--bordeaux) / 0.12);
   }
   .shadow-or {
-    box-shadow: 0 8px 32px -12px hsl(var(--or) / 0.4);
+    box-shadow: 0 8px 32px -12px hsl(var(--or) / 0.45);
   }
   .text-bordeaux-dark { color: hsl(var(--bordeaux-dark)); }
   .text-bordeaux { color: hsl(var(--bordeaux)); }
+  .bg-bordeaux { background-color: hsl(var(--bordeaux)); }
+  .bg-bordeaux-dark { background-color: hsl(var(--bordeaux-dark)); }
   .bg-creme { background-color: hsl(var(--creme)); }
+  .bg-or { background-color: hsl(var(--or)); }
   .bg-or-light { background-color: hsl(var(--or-light)); }
   .text-or { color: hsl(var(--or)); }
   .text-success { color: hsl(var(--success)); }
@@ -152,4 +167,10 @@
   .text-warning { color: hsl(var(--warning)); }
   .bg-info-bg { background-color: hsl(var(--info-bg)); }
   .bg-destructive-light { background-color: hsl(var(--destructive-light)); }
+  .border-bordeaux { border-color: hsl(var(--bordeaux)); }
+  .border-or { border-color: hsl(var(--or)); }
+  .ring-or { --tw-ring-color: hsl(var(--or)); }
+  /* Lisibilité — texte associatif fort */
+  .text-strong { color: hsl(var(--foreground)); font-weight: 600; }
+  .text-readable { color: hsl(0 0% 18%); }
 }
