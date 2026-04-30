@@ -23,7 +23,7 @@ function useSupabaseTable<T>(table: string) {
   useEffect(() => {
     fetchData();
     const channel = supabase
-      .channel(`${table}_changes`)
+      .channel(`${table}_changes_${crypto.randomUUID()}`)
       .on("postgres_changes", { event: "*", schema: "public", table }, () => {
         fetchData();
       })
@@ -215,7 +215,7 @@ export function useTreasury() {
     };
     fetch();
     const channel = supabase
-      .channel("treasury_changes")
+      .channel(`treasury_changes_${crypto.randomUUID()}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "treasury" }, () => fetch())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
@@ -331,7 +331,7 @@ export function useSettings() {
     };
     fetch();
     const channel = supabase
-      .channel("settings_changes")
+      .channel(`settings_changes_${crypto.randomUUID()}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "settings" }, () => fetch())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
