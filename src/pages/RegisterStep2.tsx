@@ -73,6 +73,7 @@ const RegisterStep2 = () => {
       });
 
       sessionStorage.removeItem("register_step1");
+      sessionStorage.removeItem("ck_draft_register_step1");
       toast.success("Membre inscrit avec succès", { description: `ID: ${memberId} — ${data.lastName} ${data.firstName}` });
       navigate("/members");
     } catch (err: any) {
