@@ -1,7 +1,7 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
-import { seedDefaultAdmin, flushQueue } from "@/lib/offline";
+import { seedDefaultAdmin, flushQueue, startAutoSync } from "@/lib/offline";
 import { supabase } from "@/integrations/supabase/client";
 
 // Mount the app FIRST — never block render on async work.
@@ -34,6 +34,7 @@ if ("serviceWorker" in navigator) {
   }
 }
 
-// Flush sync queue when network returns
-window.addEventListener("online", () => { flushQueue(supabase).catch(() => {}); });
+// Auto-sync loop: retry failed mutations periodically + on every online event.
+startAutoSync(supabase, 15000);
+// Also flush immediately on the explicit online event (already handled inside startAutoSync but kept for first run)
 if (navigator.onLine) setTimeout(() => { flushQueue(supabase).catch(() => {}); }, 2000);

@@ -76,8 +76,20 @@ const RegisterStep1 = () => {
   /** Ensure a phone field always starts with the dial prefix. */
   const handlePhone = (key: "phone" | "phoneSecondary" | "whatsapp", v: string) => {
     let next = v;
-    if (!next.startsWith("+")) next = DEFAULT_DIAL + next.replace(/^\+?\s*/, "");
+    if (!next.startsWith(DEFAULT_DIAL.trim())) next = DEFAULT_DIAL + next.replace(/^\+?\s*\d*\s*/, "");
     setForm({ [key]: next } as any);
+  };
+
+  /** Prevent the user from backspacing into the dial prefix. */
+  const handlePhoneKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, value: string) => {
+    const input = e.currentTarget;
+    const start = input.selectionStart ?? 0;
+    const end = input.selectionEnd ?? 0;
+    const prefixLen = DEFAULT_DIAL.length;
+    if ((e.key === "Backspace" && start <= prefixLen && end <= prefixLen) ||
+        (e.key === "Delete" && start < prefixLen)) {
+      e.preventDefault();
+    }
   };
 
   /** Process & store member portrait (auto-enhance + face-centered square crop). */
@@ -177,9 +189,9 @@ const RegisterStep1 = () => {
             <Field label="Prénom(s) *" value={formData.firstName} onChange={(v) => setForm({ firstName: v })} placeholder="Prénom(s)" />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Field label="Contact principal *" value={formData.phone} onChange={(v) => handlePhone("phone", v)} placeholder="+225 XX XX XX XX XX" />
-            <Field label="Contact secondaire" value={formData.phoneSecondary} onChange={(v) => handlePhone("phoneSecondary", v)} placeholder="Optionnel" />
-            <Field label="WhatsApp" value={formData.whatsapp} onChange={(v) => handlePhone("whatsapp", v)} placeholder="Optionnel" />
+            <PhoneField label="Contact principal *" value={formData.phone} onChange={(v) => handlePhone("phone", v)} onKeyDown={(e) => handlePhoneKeyDown(e, formData.phone)} />
+            <PhoneField label="Contact secondaire" value={formData.phoneSecondary} onChange={(v) => handlePhone("phoneSecondary", v)} onKeyDown={(e) => handlePhoneKeyDown(e, formData.phoneSecondary)} />
+            <PhoneField label="WhatsApp" value={formData.whatsapp} onChange={(v) => handlePhone("whatsapp", v)} onKeyDown={(e) => handlePhoneKeyDown(e, formData.whatsapp)} />
           </div>
           <Field label="Campement *" value={formData.campement} onChange={(v) => setForm({ campement: v })} placeholder="Lieu de résidence" />
 
@@ -327,6 +339,22 @@ function Field({ label, value, onChange, placeholder }: { label: string; value: 
     <div className="space-y-2">
       <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">{label}</Label>
       <Input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="h-10" />
+    </div>
+  );
+}
+
+function PhoneField({ label, value, onChange, onKeyDown }: { label: string; value: string; onChange: (v: string) => void; onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void }) {
+  return (
+    <div className="space-y-2">
+      <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">{label}</Label>
+      <Input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={onKeyDown}
+        placeholder="+225 XX XX XX XX XX"
+        inputMode="tel"
+        className="h-10"
+      />
     </div>
   );
 }

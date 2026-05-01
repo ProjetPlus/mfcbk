@@ -62,26 +62,57 @@ export function clearQueueItem(id: string) {
   localStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
 }
 
+// Per-item retry tracking (in-memory + persisted in queue item).
+const RETRY_MAX = 8;
+
 export async function flushQueue(supabase: any): Promise<number> {
+  if (!isOnline()) return 0;
   const queue = getQueue();
   let flushed = 0;
+  const remaining: QueuedOp[] = [];
   for (const item of queue) {
     try {
       if (item.op === "insert") {
-        await supabase.from(item.table).insert(item.payload);
+        const { error } = await supabase.from(item.table).insert(item.payload);
+        if (error) throw error;
       } else if (item.op === "update" && item.match) {
-        await supabase.from(item.table).update(item.payload).eq(item.match.column, item.match.value);
+        const { error } = await supabase.from(item.table).update(item.payload).eq(item.match.column, item.match.value);
+        if (error) throw error;
       } else if (item.op === "delete" && item.match) {
-        await supabase.from(item.table).delete().eq(item.match.column, item.match.value);
+        const { error } = await supabase.from(item.table).delete().eq(item.match.column, item.match.value);
+        if (error) throw error;
       }
-      clearQueueItem(item.id);
       flushed++;
-    } catch (e) {
-      console.warn("Sync queue item failed, will retry", item, e);
-      break; // stop on failure to preserve order
+    } catch (e: any) {
+      const retries = ((item as any).retries ?? 0) + 1;
+      console.warn(`[sync] item failed (retry ${retries}/${RETRY_MAX})`, item.table, item.op, e?.message || e);
+      if (retries < RETRY_MAX) {
+        remaining.push({ ...item, ...({ retries } as any) });
+      } else {
+        console.error("[sync] item permanently failed, dropped", item, e);
+      }
     }
   }
+  // Append any items that haven't been processed yet (none here since we iterate all)
+  localStorage.setItem(QUEUE_KEY, JSON.stringify(remaining));
   return flushed;
+}
+
+/** Auto-retry loop: keep flushing while we're online and items remain. */
+let _autoSyncTimer: any = null;
+export function startAutoSync(supabase: any, intervalMs = 15000) {
+  if (_autoSyncTimer) return;
+  const tick = async () => {
+    try {
+      if (isOnline() && getQueue().length > 0) {
+        await flushQueue(supabase);
+      }
+    } catch (e) { console.warn("[autosync] tick failed", e); }
+  };
+  _autoSyncTimer = setInterval(tick, intervalMs);
+  // Immediate kick on online event
+  window.addEventListener("online", () => { setTimeout(tick, 500); });
+  setTimeout(tick, 1500);
 }
 
 export function isOnline() {
