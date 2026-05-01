@@ -34,8 +34,10 @@ const Login = () => {
       if (user) {
         login(user);
         navigate("/dashboard");
+      } else if (!online) {
+        setError("Session expirée hors ligne. Reconnectez-vous à Internet au moins une fois pour rafraîchir vos identifiants, puis réessayez.");
       } else {
-        setError("Identifiant ou mot de passe incorrect (vérifiez la connexion ou utilisez vos identifiants déjà enregistrés sur cet appareil)");
+        setError("Identifiant ou mot de passe incorrect.");
       }
     } catch (err: any) {
       console.warn("[login] failed", err);
