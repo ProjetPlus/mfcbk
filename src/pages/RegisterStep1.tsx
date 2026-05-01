@@ -343,4 +343,20 @@ function Field({ label, value, onChange, placeholder }: { label: string; value: 
   );
 }
 
+function PhoneField({ label, value, onChange, onKeyDown }: { label: string; value: string; onChange: (v: string) => void; onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void }) {
+  return (
+    <div className="space-y-2">
+      <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">{label}</Label>
+      <Input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={onKeyDown}
+        placeholder="+225 XX XX XX XX XX"
+        inputMode="tel"
+        className="h-10"
+      />
+    </div>
+  );
+}
+
 export default RegisterStep1;
