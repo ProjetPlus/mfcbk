@@ -76,8 +76,20 @@ const RegisterStep1 = () => {
   /** Ensure a phone field always starts with the dial prefix. */
   const handlePhone = (key: "phone" | "phoneSecondary" | "whatsapp", v: string) => {
     let next = v;
-    if (!next.startsWith("+")) next = DEFAULT_DIAL + next.replace(/^\+?\s*/, "");
+    if (!next.startsWith(DEFAULT_DIAL.trim())) next = DEFAULT_DIAL + next.replace(/^\+?\s*\d*\s*/, "");
     setForm({ [key]: next } as any);
+  };
+
+  /** Prevent the user from backspacing into the dial prefix. */
+  const handlePhoneKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, value: string) => {
+    const input = e.currentTarget;
+    const start = input.selectionStart ?? 0;
+    const end = input.selectionEnd ?? 0;
+    const prefixLen = DEFAULT_DIAL.length;
+    if ((e.key === "Backspace" && start <= prefixLen && end <= prefixLen) ||
+        (e.key === "Delete" && start < prefixLen)) {
+      e.preventDefault();
+    }
   };
 
   /** Process & store member portrait (auto-enhance + face-centered square crop). */
