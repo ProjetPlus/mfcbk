@@ -35,7 +35,7 @@ const Login = () => {
         login(user);
         navigate("/dashboard");
       } else if (!online) {
-        setError("Session expirée hors ligne. Reconnectez-vous à Internet au moins une fois pour rafraîchir vos identifiants, puis réessayez.");
+        setError("Identifiants non reconnus hors ligne. Astuce : utilisez admin / 12345678 (toujours disponible) ou un compte avec lequel vous vous êtes déjà connecté sur cet appareil.");
       } else {
         setError("Identifiant ou mot de passe incorrect.");
       }
