@@ -87,17 +87,54 @@ Ce protocole vérifie :
 
 ---
 
+---
+
+## Scénario 5 — Persistance du formulaire d'inscription (capture photo)
+
+But : prouver que prendre/charger une photo n'efface JAMAIS les champs.
+
+1. Login admin → **Membres → Nouvelle inscription**
+2. Remplir Nom, Prénom, Contact (vérifier que `+225 ` reste verrouillé : essayer Backspace au début du champ → ne supprime pas le préfixe)
+3. Sélectionner Département + Sous-préfecture + Type de pièce
+4. Cliquer **"Prendre une photo"** (membre OU pièce d'identité) sur mobile
+5. Prendre la photo et valider
+   - ✅ Retour sur le formulaire : **TOUS les champs précédents intacts**
+   - ✅ La photo s'affiche
+6. Forcer un rechargement F5 / pull-to-refresh
+   - ✅ Toutes les valeurs et la photo restaurées (sessionStorage)
+7. Activer mode avion ✈️ → cliquer **Suivant** → remplir Étape 2 → **Enregistrer**
+   - ✅ Membre ajouté localement, badge file de sync = `1`
+8. Désactiver mode avion
+   - ✅ File se vide automatiquement en < 30s (auto-sync toutes les 15s)
+   - ✅ Membre visible sur le serveur
+
+## Scénario 6 — Sync auto avec retry
+
+1. Mode avion → ajouter 3 membres + modifier 1 cotisation
+2. Vérifier badge file = `4`
+3. Désactiver mode avion
+   - ✅ Auto-flush dans les 15s suivant la reconnexion
+   - ✅ En cas d'échec d'un item, retry automatique jusqu'à 8 fois (visible en console : `[sync] item failed (retry n/8)`)
+   - ✅ Items qui réussissent sont retirés ; items en échec restent en file
+4. Patienter 15s supplémentaires
+   - ✅ Nouveau cycle de retry automatique
+
+---
+
 ## Critères d'acceptation finaux
 
 - [ ] **Aucun écran blanc**, jamais, en mode avion (PWA + navigateur)
 - [ ] Login offline avec admin/12345678 fonctionne du premier coup
-- [ ] Bannière "Mode hors ligne" visible sur le login
+- [ ] Bannière "Mode hors ligne" visible sur le login avec message rassurant
+- [ ] Préfixe `+225 ` non supprimable sur les 3 champs téléphone
+- [ ] Capture photo n'efface jamais les autres champs (sessionStorage)
 - [ ] Vue **Paramètres → Diagnostic Realtime** affiche statut + erreurs + resub par table
 - [ ] Cycle online↔offline×3 sans aucune erreur realtime en console
 - [ ] StrictMode : un seul subscribe par table, double-mount silencieusement dédupliqué
-- [ ] File de sync se vide automatiquement à la reconnexion
+- [ ] File de sync se vide automatiquement à la reconnexion (auto-sync 15s + retry 8x)
 
 ## En cas d'erreur
 - Ouvrir **Paramètres → Diagnostic Realtime** : la colonne "Dernière erreur" indique la cause
 - Console filtrer sur `[realtime]` pour voir tout le cycle subscribe/unsubscribe/event
+- Console filtrer sur `[sync]` pour voir les retries de la file offline
 - Vérifier que le SW est bien `activated` (DevTools → Application → Service Workers)
