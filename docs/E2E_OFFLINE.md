@@ -138,3 +138,31 @@ But : prouver que prendre/charger une photo n'efface JAMAIS les champs.
 - Console filtrer sur `[realtime]` pour voir tout le cycle subscribe/unsubscribe/event
 - Console filtrer sur `[sync]` pour voir les retries de la file offline
 - Vérifier que le SW est bien `activated` (DevTools → Application → Service Workers)
+
+---
+
+## Scénario 7 — Photo + bascule réseau pendant la capture
+
+But : la photo et tous les champs ne doivent jamais être vidés, même si le réseau change pendant la capture.
+
+1. Login admin → **Membres → Nouvelle inscription**
+2. Activer **mode avion** ✈️
+3. Remplir Nom, Prénom, Contacts, Département, Sous-préfecture, Type de pièce
+4. Cliquer **"Prendre une photo"** (caméra du membre)
+5. **Pendant** que la caméra est ouverte, **désactiver mode avion** (revenir en ligne)
+6. Valider la photo et revenir au formulaire
+   - ✅ Tous les champs précédents sont intacts
+   - ✅ La photo s'affiche
+   - ✅ Console : `[autosync]` reprend automatiquement (visibilitychange/pageshow)
+7. Réactiver mode avion ✈️ pendant la photo de la pièce d'identité
+   - ✅ Mêmes garanties : aucun champ vidé, aucun crash
+8. Remettre en ligne → **Suivant** → **Enregistrer**
+   - ✅ La file de sync (Paramètres → File de synchronisation) se vide automatiquement
+
+## Scénario 8 — Refresh hors ligne
+
+1. Mode avion ✈️
+2. Recharger la page (F5 / pull-to-refresh)
+   - ✅ Login s'affiche immédiatement (PAS d'écran "vous êtes hors connexion")
+   - ✅ Bannière "Mode hors ligne" visible
+   - ✅ Connexion `admin` / `12345678` fonctionne

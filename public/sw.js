@@ -4,7 +4,7 @@
 //   which captures Vite's hashed JS/CSS chunks (/assets/*-[hash].js)
 //   on the first online visit. Subsequent offline loads serve them from cache.
 // - Navigation: network-first (3s timeout) then cached index for SPA routing.
-const CACHE = "aschrisk-v7";
+const CACHE = "aschrisk-v8";
 const PRECACHE = [
   "/",
   "/index.html",
@@ -48,8 +48,18 @@ self.addEventListener("fetch", (event) => {
   // Only handle same-origin
   if (url.origin !== self.location.origin) return;
 
-  // Navigation → network first with 3s timeout, fallback to cached index
+  // Navigation → if offline, serve cached shell immediately (no 3s wait).
+  // Otherwise network-first with timeout, fallback to cached index.
   if (req.mode === "navigate") {
+    const cachedShell = () =>
+      caches.match("/index.html").then((r) => r || caches.match("/") || caches.match(req));
+    if (!self.navigator.onLine) {
+      event.respondWith(cachedShell().then((r) => r || fetch(req).catch(() => new Response(
+        "<!doctype html><meta charset=utf-8><title>Hors ligne</title><body style='font-family:sans-serif;padding:24px'>Application hors ligne. Rouvrez quand vous serez en ligne pour finir l'installation.</body>",
+        { headers: { "Content-Type": "text/html; charset=utf-8" } }
+      ))));
+      return;
+    }
     event.respondWith(
       timeout(3000, fetch(req))
         .then((res) => {
@@ -57,7 +67,7 @@ self.addEventListener("fetch", (event) => {
           caches.open(CACHE).then((c) => c.put("/index.html", copy)).catch(() => {});
           return res;
         })
-        .catch(() => caches.match("/index.html").then((r) => r || caches.match("/")))
+        .catch(() => cachedShell())
     );
     return;
   }

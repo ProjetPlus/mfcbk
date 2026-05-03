@@ -53,8 +53,50 @@ export function getQueue(): QueuedOp[] {
 
 export function enqueue(op: Omit<QueuedOp, "id" | "ts">) {
   const queue = getQueue();
-  queue.push({ ...op, id: crypto.randomUUID(), ts: Date.now() });
+  const payload = op.payload ? normalizeDates(op.payload) : op.payload;
+  queue.push({ ...op, payload, id: crypto.randomUUID(), ts: Date.now() });
   localStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
+}
+
+/** Normalize date/time fields to ISO UTC strings to avoid timezone drift on sync. */
+const DATE_KEY_RE = /(_at|_date|date|_on)$/i;
+function normalizeDates(input: any): any {
+  if (input == null) return input;
+  if (Array.isArray(input)) return input.map(normalizeDates);
+  if (input instanceof Date) return input.toISOString();
+  if (typeof input === "object") {
+    const out: any = {};
+    for (const k of Object.keys(input)) {
+      const v = input[k];
+      if (v instanceof Date) out[k] = v.toISOString();
+      else if (typeof v === "string" && DATE_KEY_RE.test(k)) out[k] = normalizeDateString(v) ?? v;
+      else if (v && typeof v === "object") out[k] = normalizeDates(v);
+      else out[k] = v;
+    }
+    return out;
+  }
+  return input;
+}
+function normalizeDateString(s: string): string | null {
+  if (!s) return null;
+  // Already ISO datetime
+  if (/^\d{4}-\d{2}-\d{2}T/.test(s)) {
+    const d = new Date(s);
+    return isNaN(+d) ? null : d.toISOString();
+  }
+  // YYYY-MM-DD → keep as date-only (no TZ shift)
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  // DD/MM/YYYY or DD-MM-YYYY
+  const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+  if (m) {
+    let [, d, mo, y] = m;
+    let yr = parseInt(y); if (yr < 100) yr += 2000;
+    const dn = +d, mn = +mo;
+    if (mn < 1 || mn > 12 || dn < 1 || dn > 31) return null;
+    return `${yr}-${String(mn).padStart(2, "0")}-${String(dn).padStart(2, "0")}`;
+  }
+  const d = new Date(s);
+  return isNaN(+d) ? null : d.toISOString();
 }
 
 export function clearQueueItem(id: string) {
@@ -110,9 +152,29 @@ export function startAutoSync(supabase: any, intervalMs = 15000) {
     } catch (e) { console.warn("[autosync] tick failed", e); }
   };
   _autoSyncTimer = setInterval(tick, intervalMs);
-  // Immediate kick on online event
+  // Immediate kick on online event, page show, visibility change (returning from camera).
   window.addEventListener("online", () => { setTimeout(tick, 500); });
+  window.addEventListener("pageshow", () => { setTimeout(tick, 800); });
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") setTimeout(tick, 800);
+  });
   setTimeout(tick, 1500);
+}
+
+/** Aggregate queue stats for the diagnostic widget. */
+export function getQueueStats() {
+  const q = getQueue();
+  const byTable: Record<string, number> = {};
+  const byOp: Record<string, number> = { insert: 0, update: 0, delete: 0 };
+  let withRetries = 0;
+  let oldest: number | null = null;
+  for (const it of q) {
+    byTable[it.table] = (byTable[it.table] || 0) + 1;
+    byOp[it.op] = (byOp[it.op] || 0) + 1;
+    if ((it as any).retries) withRetries++;
+    if (oldest === null || it.ts < oldest) oldest = it.ts;
+  }
+  return { total: q.length, byTable, byOp, withRetries, oldest };
 }
 
 export function isOnline() {

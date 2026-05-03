@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useSettings } from "@/db/useDb";
 import { RealtimeDiagnostics } from "@/components/RealtimeDiagnostics";
+import { SyncQueueWidget } from "@/components/SyncQueueWidget";
 import { toast } from "sonner";
 
 function FieldRow({ label, value, onChange, type = "text" }: { label: string; value: string; onChange: (v: string) => void; type?: string }) {
@@ -94,6 +95,7 @@ const SettingsPage = () => {
         </Button>
       </div>
 
+      <SyncQueueWidget />
       <RealtimeDiagnostics />
     </div>
   );
