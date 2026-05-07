@@ -30,13 +30,32 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
+/** Detect if browser can encode WebP via canvas. Cached. */
+let _webpSupport: boolean | null = null;
+export function supportsWebP(): boolean {
+  if (_webpSupport !== null) return _webpSupport;
+  try {
+    const c = document.createElement("canvas");
+    c.width = c.height = 1;
+    const data = c.toDataURL("image/webp");
+    _webpSupport = data.startsWith("data:image/webp");
+  } catch { _webpSupport = false; }
+  return _webpSupport;
+}
+
+function pickMime(preferWebP = true): { mime: string; quality: number } {
+  if (preferWebP && supportsWebP()) return { mime: "image/webp", quality: 0.82 };
+  return { mime: "image/jpeg", quality: 0.88 };
+}
+
 /**
  * Auto-enhance + square crop centered on the upper-middle (face zone for portraits).
- * Returns a JPEG data URL.
+ * Returns a WebP (preferred) or JPEG data URL.
  */
 export async function processPortrait(src: string, opts: ProcessOptions = {}): Promise<string> {
   const size = opts.size ?? 512;
-  const quality = opts.quality ?? 0.88;
+  const fmt = pickMime(true);
+  const quality = opts.quality ?? fmt.quality;
   const brightness = opts.brightness ?? 1.05;
   const contrast = opts.contrast ?? 1.1;
 
