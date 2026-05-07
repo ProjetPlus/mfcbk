@@ -106,11 +106,33 @@ export function clearQueueItem(id: string) {
 
 // Per-item retry tracking (in-memory + persisted in queue item).
 const RETRY_MAX = 8;
+const LOG_KEY = "ck_sync_log";
+const LOG_MAX = 200;
+
+export type SyncLogEntry = {
+  id: string; table: string; op: "insert" | "update" | "delete";
+  status: "success" | "failed" | "dropped"; ts: number; error?: string;
+};
+
+export function getSyncLog(): SyncLogEntry[] {
+  try { const raw = localStorage.getItem(LOG_KEY); return raw ? JSON.parse(raw) : []; }
+  catch { return []; }
+}
+export function clearSyncLog() { localStorage.removeItem(LOG_KEY); }
+function appendLog(e: SyncLogEntry) {
+  const all = getSyncLog(); all.unshift(e);
+  localStorage.setItem(LOG_KEY, JSON.stringify(all.slice(0, LOG_MAX)));
+}
+
+type SyncEvent = { type: "item"; entry: SyncLogEntry } | { type: "done"; flushed: number; failed: number };
+const _listeners = new Set<(e: SyncEvent) => void>();
+export function onSyncEvent(cb: (e: SyncEvent) => void) { _listeners.add(cb); return () => _listeners.delete(cb); }
+function emit(e: SyncEvent) { _listeners.forEach(l => { try { l(e); } catch {} }); }
 
 export async function flushQueue(supabase: any): Promise<number> {
   if (!isOnline()) return 0;
   const queue = getQueue();
-  let flushed = 0;
+  let flushed = 0; let failed = 0;
   const remaining: QueuedOp[] = [];
   for (const item of queue) {
     try {
@@ -125,16 +147,25 @@ export async function flushQueue(supabase: any): Promise<number> {
         if (error) throw error;
       }
       flushed++;
+      const entry: SyncLogEntry = { id: item.id, table: item.table, op: item.op, status: "success", ts: Date.now() };
+      appendLog(entry); emit({ type: "item", entry });
     } catch (e: any) {
+      failed++;
       const retries = ((item as any).retries ?? 0) + 1;
-      console.warn(`[sync] item failed (retry ${retries}/${RETRY_MAX})`, item.table, item.op, e?.message || e);
+      const msg = e?.message || String(e);
+      console.warn(`[sync] item failed (retry ${retries}/${RETRY_MAX})`, item.table, item.op, msg);
       if (retries < RETRY_MAX) {
         remaining.push({ ...item, ...({ retries } as any) });
+        const entry: SyncLogEntry = { id: item.id, table: item.table, op: item.op, status: "failed", ts: Date.now(), error: msg };
+        appendLog(entry); emit({ type: "item", entry });
       } else {
         console.error("[sync] item permanently failed, dropped", item, e);
+        const entry: SyncLogEntry = { id: item.id, table: item.table, op: item.op, status: "dropped", ts: Date.now(), error: msg };
+        appendLog(entry); emit({ type: "item", entry });
       }
     }
   }
+  emit({ type: "done", flushed, failed });
   // Append any items that haven't been processed yet (none here since we iterate all)
   localStorage.setItem(QUEUE_KEY, JSON.stringify(remaining));
   return flushed;
