@@ -43,12 +43,20 @@ const Scanner = () => {
     if (lookupLockRef.current) return;
     lookupLockRef.current = true;
     setSearching(true);
+    const releaseSoon = (ms = 1500) => setTimeout(() => { lookupLockRef.current = false; }, ms);
     try {
-      const { data: member } = await supabase
+      // 2G-friendly: race the network call against an 8s timeout so a stalled
+      // request never freezes the scanner. On timeout, re-arm and toast.
+      const query = supabase
         .from("members")
         .select("*")
         .eq("member_id", code.trim())
         .maybeSingle();
+      const result: any = await Promise.race([
+        query,
+        new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 8000)),
+      ]);
+      const member = result?.data;
 
       if (member) {
         toast.success(`Membre trouvé : ${member.last_name} ${member.first_name}`);
@@ -56,11 +64,14 @@ const Scanner = () => {
         navigate(`/members/${member.id}`);
       } else {
         toast.error("Membre non trouvé", { description: code });
-        setTimeout(() => { lookupLockRef.current = false; }, 1500);
+        releaseSoon();
       }
     } catch (err: any) {
-      toast.error("Erreur de recherche", { description: err.message });
-      lookupLockRef.current = false;
+      const isTimeout = err?.message === "timeout";
+      toast.error(isTimeout ? "Réseau lent — réessayez" : "Erreur de recherche", {
+        description: isTimeout ? code : err?.message,
+      });
+      releaseSoon(800);
     }
     setSearching(false);
   };
