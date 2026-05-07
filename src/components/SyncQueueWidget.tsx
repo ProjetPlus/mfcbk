@@ -1,18 +1,21 @@
 import { useEffect, useState } from "react";
-import { CloudUpload, RefreshCw } from "lucide-react";
+import { CloudUpload, RefreshCw, ScrollText, Trash2, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getQueueStats } from "@/lib/offline";
+import { getQueueStats, getSyncLog, clearSyncLog, onSyncEvent, type SyncLogEntry } from "@/lib/offline";
 import { useOnlineStatus } from "@/lib/online";
 import { toast } from "sonner";
 
 export function SyncQueueWidget() {
   const { online, syncing, syncNow } = useOnlineStatus();
   const [stats, setStats] = useState(getQueueStats());
+  const [log, setLog] = useState<SyncLogEntry[]>(getSyncLog());
+  const [showLog, setShowLog] = useState(false);
 
   useEffect(() => {
     const id = setInterval(() => setStats(getQueueStats()), 2000);
-    return () => clearInterval(id);
+    const off = onSyncEvent(() => { setStats(getQueueStats()); setLog(getSyncLog()); });
+    return () => { clearInterval(id); off(); };
   }, []);
 
   const handleSync = async () => {
@@ -60,6 +63,35 @@ export function SyncQueueWidget() {
           </>
         )}
         {stats.total === 0 && <p className="text-xs text-muted-foreground">Aucune opération en attente. Tout est synchronisé.</p>}
+
+        <div className="pt-2 border-t border-border/40">
+          <div className="flex items-center justify-between mb-2">
+            <button onClick={() => setShowLog(s => !s)} className="text-xs flex items-center gap-1 text-muted-foreground hover:text-foreground">
+              <ScrollText className="h-3 w-3" /> Journal ({log.length}) {showLog ? "▾" : "▸"}
+            </button>
+            {log.length > 0 && (
+              <button onClick={() => { clearSyncLog(); setLog([]); toast.success("Journal vidé"); }} className="text-xs flex items-center gap-1 text-muted-foreground hover:text-destructive">
+                <Trash2 className="h-3 w-3" /> Vider
+              </button>
+            )}
+          </div>
+          {showLog && (
+            <div className="max-h-64 overflow-auto space-y-1">
+              {log.length === 0 && <p className="text-xs text-muted-foreground">Aucune opération enregistrée.</p>}
+              {log.map((e) => (
+                <div key={e.id + e.ts} className="flex items-center gap-2 text-xs p-1.5 rounded bg-secondary/40">
+                  {e.status === "success" && <CheckCircle2 className="h-3 w-3 text-success shrink-0" />}
+                  {e.status === "failed" && <AlertTriangle className="h-3 w-3 text-warning shrink-0" />}
+                  {e.status === "dropped" && <XCircle className="h-3 w-3 text-destructive shrink-0" />}
+                  <span className="font-mono shrink-0">{new Date(e.ts).toLocaleTimeString()}</span>
+                  <span className="font-semibold">{e.op}</span>
+                  <span className="text-muted-foreground">{e.table}</span>
+                  {e.error && <span className="text-destructive truncate ml-auto" title={e.error}>{e.error.slice(0, 40)}</span>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </CardContent>
     </Card>
   );

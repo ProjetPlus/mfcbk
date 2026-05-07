@@ -1,8 +1,20 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
-import { seedDefaultAdmin, flushQueue, startAutoSync } from "@/lib/offline";
+import { seedDefaultAdmin, flushQueue, startAutoSync, onSyncEvent } from "@/lib/offline";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+// Toast per synchronized op + summary
+onSyncEvent((e) => {
+  if (e.type === "item") {
+    const label = `${e.entry.op} · ${e.entry.table}`;
+    if (e.entry.status === "success") toast.success(`Synchronisé : ${label}`);
+    else if (e.entry.status === "dropped") toast.error(`Échec définitif : ${label}`, { description: e.entry.error });
+  } else if (e.type === "done" && (e.flushed > 0 || e.failed > 0)) {
+    toast.message(`Sync terminée : ${e.flushed} OK${e.failed ? `, ${e.failed} en attente` : ""}`);
+  }
+});
 
 // Mount the app FIRST — never block render on async work.
 try {
