@@ -79,7 +79,28 @@ export async function processPortrait(src: string, opts: ProcessOptions = {}): P
   ctx.drawImage(img, sx, sySafe, side, side, 0, 0, size, size);
   (ctx as any).filter = "none";
 
-  return canvas.toDataURL("image/jpeg", quality);
+  return canvas.toDataURL(fmt.mime, quality);
+}
+
+/**
+ * Compress an arbitrary image (e.g. ID card photo) keeping aspect ratio,
+ * max dimension `maxSide`. Returns a WebP (preferred) or JPEG data URL.
+ */
+export async function compressImage(src: string, maxSide = 1280, quality?: number): Promise<string> {
+  const img = await loadImage(src);
+  let w = img.naturalWidth;
+  let h = img.naturalHeight;
+  const ratio = Math.min(1, maxSide / Math.max(w, h));
+  w = Math.round(w * ratio);
+  h = Math.round(h * ratio);
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d")!;
+  (ctx as any).filter = "brightness(1.04) contrast(1.08)";
+  ctx.drawImage(img, 0, 0, w, h);
+  const fmt = pickMime(true);
+  return canvas.toDataURL(fmt.mime, quality ?? fmt.quality);
 }
 
 /**
