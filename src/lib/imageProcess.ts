@@ -103,22 +103,3 @@ export async function compressImage(src: string, maxSide = 1280, quality?: numbe
   return canvas.toDataURL(fmt.mime, quality ?? fmt.quality);
 }
 
-/**
- * Compress an arbitrary image (e.g. ID card photo) keeping aspect ratio,
- * max dimension `maxSide`. Returns a JPEG data URL.
- */
-export async function compressImage(src: string, maxSide = 1280, quality = 0.85): Promise<string> {
-  const img = await loadImage(src);
-  let w = img.naturalWidth;
-  let h = img.naturalHeight;
-  const ratio = Math.min(1, maxSide / Math.max(w, h));
-  w = Math.round(w * ratio);
-  h = Math.round(h * ratio);
-  const canvas = document.createElement("canvas");
-  canvas.width = w;
-  canvas.height = h;
-  const ctx = canvas.getContext("2d")!;
-  (ctx as any).filter = "brightness(1.04) contrast(1.08)";
-  ctx.drawImage(img, 0, 0, w, h);
-  return canvas.toDataURL("image/jpeg", quality);
-}
