@@ -1,18 +1,21 @@
 import { useEffect, useState } from "react";
-import { CloudUpload, RefreshCw } from "lucide-react";
+import { CloudUpload, RefreshCw, ScrollText, Trash2, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getQueueStats } from "@/lib/offline";
+import { getQueueStats, getSyncLog, clearSyncLog, onSyncEvent, type SyncLogEntry } from "@/lib/offline";
 import { useOnlineStatus } from "@/lib/online";
 import { toast } from "sonner";
 
 export function SyncQueueWidget() {
   const { online, syncing, syncNow } = useOnlineStatus();
   const [stats, setStats] = useState(getQueueStats());
+  const [log, setLog] = useState<SyncLogEntry[]>(getSyncLog());
+  const [showLog, setShowLog] = useState(false);
 
   useEffect(() => {
     const id = setInterval(() => setStats(getQueueStats()), 2000);
-    return () => clearInterval(id);
+    const off = onSyncEvent(() => { setStats(getQueueStats()); setLog(getSyncLog()); });
+    return () => { clearInterval(id); off(); };
   }, []);
 
   const handleSync = async () => {
